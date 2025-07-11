@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-neural-dark text-text-primary;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+
+  code, pre {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+  }
+}
+
+@layer components {
+  .neural-gradient {
+    @apply bg-gradient-to-r from-electric-blue via-electric-purple to-electric-pink;
+  }
+
+  .neural-border {
+    @apply border border-neural-accent/20 hover:border-electric-blue/50 transition-colors duration-300;
+  }
+
+  .glass-effect {
+    @apply backdrop-blur-md bg-neural-light/30 border border-white/10;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  }
+
+  .neural-button {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-300;
+    @apply bg-gradient-to-r from-electric-blue to-electric-purple;
+    @apply hover:shadow-neural hover:scale-105 active:scale-95;
+  }
+
+  .neural-card {
+    @apply glass-effect rounded-xl p-6 transition-all duration-300;
+    @apply hover:shadow-neural hover:border-electric-blue/30;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-neural-dark;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-neural-accent rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-electric-blue;
+}
