@@ -3,13 +3,13 @@
   publish = "build"
 
 [build.environment]
-  REACT_APP_API_URL = "https://osbackend.fly.dev"
-  REACT_APP_WS_URL = "wss://osbackend.fly.dev"
+  REACT_APP_API_URL = "https://osbackend-zl1h.onrender.com"
+  REACT_APP_WS_URL = "wss://osbackend-zl1h.onrender.com"
   CI = "true"
 
 [[redirects]]
   from = "/api/*"
-  to = "https://osbackend.fly.dev/api/:splat"
+  to = "https://osbackend-zl1h.onrender.com/api/:splat"
   status = 200
 
 [[redirects]]
