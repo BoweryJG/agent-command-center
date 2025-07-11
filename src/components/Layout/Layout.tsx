@@ -14,7 +14,7 @@ interface NavItem {
   permission?: string;
 }
 
-const navItems: NavItem[] = {
+const navItems: NavItem[] = [
   {
     path: '/dashboard',
     label: 'Dashboard',
