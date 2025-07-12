@@ -47,24 +47,26 @@ export const rolePermissions: Record<UserRole, string[]> = {
 };
 
 // Check if a role has a specific permission
-export const hasPermission = (role: UserRole, permission: string): boolean => {
-  const permissions = rolePermissions[role] || [];
+export const hasPermission = (role: UserRole | string, permission: string): boolean => {
+  const roleKey = typeof role === 'string' ? (role as keyof typeof rolePermissions) : role;
+  const permissions = rolePermissions[roleKey as UserRole] || [];
   return permissions.includes(permission);
 };
 
 // Check if a role has any of the specified permissions
-export const hasAnyPermission = (role: UserRole, permissions: string[]): boolean => {
+export const hasAnyPermission = (role: UserRole | string, permissions: string[]): boolean => {
   return permissions.some((permission) => hasPermission(role, permission));
 };
 
 // Check if a role has all of the specified permissions
-export const hasAllPermissions = (role: UserRole, permissions: string[]): boolean => {
+export const hasAllPermissions = (role: UserRole | string, permissions: string[]): boolean => {
   return permissions.every((permission) => hasPermission(role, permission));
 };
 
 // Get all permissions for a role
-export const getRolePermissions = (role: UserRole): string[] => {
-  return rolePermissions[role] || [];
+export const getRolePermissions = (role: UserRole | string): string[] => {
+  const roleKey = typeof role === 'string' ? (role as keyof typeof rolePermissions) : role;
+  return rolePermissions[roleKey as UserRole] || [];
 };
 
 // Route access configuration
@@ -81,9 +83,14 @@ export const routeAccess: Record<string, UserRole[]> = {
 };
 
 // Check if a role can access a specific route
-export const canAccessRoute = (role: UserRole, route: string): boolean => {
+export const canAccessRoute = (role: UserRole | string, route: string): boolean => {
   const allowedRoles = routeAccess[route];
-  return allowedRoles ? allowedRoles.includes(role) : false;
+  if (!allowedRoles) return false;
+  
+  if (typeof role === 'string') {
+    return allowedRoles.map(r => r.toString()).includes(role);
+  }
+  return allowedRoles.includes(role);
 };
 
 // Feature flags based on roles
@@ -96,7 +103,12 @@ export const featureFlags: Record<string, UserRole[]> = {
 };
 
 // Check if a role has access to a feature
-export const hasFeature = (role: UserRole, feature: string): boolean => {
+export const hasFeature = (role: UserRole | string, feature: string): boolean => {
   const allowedRoles = featureFlags[feature];
-  return allowedRoles ? allowedRoles.includes(role) : false;
+  if (!allowedRoles) return false;
+  
+  if (typeof role === 'string') {
+    return allowedRoles.map(r => r.toString()).includes(role);
+  }
+  return allowedRoles.includes(role);
 };

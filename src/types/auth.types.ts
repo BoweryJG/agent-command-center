@@ -1,8 +1,11 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  permissions: string[];
   avatar?: string;
   createdAt: string;
   updatedAt: string;
@@ -28,7 +31,9 @@ export interface LoginCredentials {
 export interface SignupCredentials {
   email: string;
   password: string;
-  name: string;
+  username: string;
+  firstName: string;
+  lastName: string;
 }
 
 export interface AuthResponse {
@@ -53,10 +58,13 @@ export interface AuthState {
 
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
+  loginWithGoogle?: () => Promise<void>;
   signup: (credentials: SignupCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   clearError: () => void;
   checkAuth: () => Promise<void>;
+  resetPassword?: (email: string) => Promise<void>;
+  updatePassword?: (newPassword: string) => Promise<void>;
 }

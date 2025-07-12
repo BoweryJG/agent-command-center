@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { UserRole } from '../../types/auth.types';
 
 interface ProtectedRouteProps {
@@ -37,7 +37,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check role-based access
   if (requiredRoles && requiredRoles.length > 0) {
-    if (!user || !requiredRoles.includes(user.role)) {
+    if (!user || !requiredRoles.map(r => r.toString()).includes(user.role)) {
       // Redirect to unauthorized page or dashboard
       return <Navigate to="/unauthorized" replace />;
     }

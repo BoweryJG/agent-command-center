@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/SupabaseAuthContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +15,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import Unauthorized from './pages/Unauthorized';
+import AuthCallback from './pages/AuthCallback';
 import { UserRole } from './types/auth.types';
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
 
               {/* Protected routes */}
               <Route

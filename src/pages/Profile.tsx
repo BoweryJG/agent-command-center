@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import authService from '../services/auth.service';
+import { useAuth } from '../contexts/SupabaseAuthContext';
+import supabaseAuthService from '../services/supabase-auth.service';
 
 const Profile: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -12,7 +12,9 @@ const Profile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    username: user?.username || '',
     email: user?.email || '',
   });
 
@@ -32,8 +34,10 @@ const Profile: React.FC = () => {
     setSuccess('');
 
     try {
-      const updatedUser = await authService.updateProfile({
-        name: formData.name,
+      const updatedUser = await supabaseAuthService.updateProfile({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        username: formData.username,
       });
       updateUser(updatedUser);
       setIsEditing(false);
@@ -47,7 +51,9 @@ const Profile: React.FC = () => {
 
   const handleCancel = () => {
     setFormData({
-      name: user?.name || '',
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      username: user?.username || '',
       email: user?.email || '',
     });
     setIsEditing(false);
@@ -115,7 +121,7 @@ const Profile: React.FC = () => {
               <div className="relative group">
                 <div className="w-32 h-32 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-1">
                   <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-3xl font-bold">
-                    {user.name.charAt(0).toUpperCase()}
+                    {(user.firstName || user.username || user.email).charAt(0).toUpperCase()}
                   </div>
                 </div>
                 <button
@@ -150,15 +156,46 @@ const Profile: React.FC = () => {
 
             {/* Form Section */}
             <form onSubmit={handleSubmit} className="flex-1 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className="w-full px-4 py-3 rounded-lg bg-neural-light border border-neural-accent/20 focus:border-electric-purple focus:outline-none focus:ring-2 focus:ring-electric-purple/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className="w-full px-4 py-3 rounded-lg bg-neural-light border border-neural-accent/20 focus:border-electric-purple focus:outline-none focus:ring-2 focus:ring-electric-purple/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-2">
-                  Full Name
+                <label htmlFor="username" className="block text-sm font-medium mb-2">
+                  Username
                 </label>
                 <input
                   type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="username"
+                  name="username"
+                  value={formData.username}
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   className="w-full px-4 py-3 rounded-lg bg-neural-light border border-neural-accent/20 focus:border-electric-purple focus:outline-none focus:ring-2 focus:ring-electric-purple/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"

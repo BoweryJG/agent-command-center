@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/SupabaseAuthContext';
 import { LoginCredentials } from '../types/auth.types';
 
 const Login: React.FC = () => {
-  const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated, isLoading, error, clearError } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
     password: '',
@@ -25,6 +25,16 @@ const Login: React.FC = () => {
     e.preventDefault();
     try {
       await login(credentials);
+    } catch (error) {
+      // Error is handled in the auth context
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      if (loginWithGoogle) {
+        await loginWithGoogle();
+      }
     } catch (error) {
       // Error is handled in the auth context
     }
@@ -136,6 +146,7 @@ const Login: React.FC = () => {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="w-full inline-flex justify-center items-center px-4 py-3 border border-neural-accent/20 rounded-lg hover:bg-neural-light transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

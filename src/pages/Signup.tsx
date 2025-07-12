@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/SupabaseAuthContext';
 import { SignupCredentials } from '../types/auth.types';
 
 const Signup: React.FC = () => {
-  const { signup, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { signup, loginWithGoogle, isAuthenticated, isLoading, error, clearError } = useAuth();
   const [credentials, setCredentials] = useState<SignupCredentials>({
     email: '',
     password: '',
-    name: '',
+    username: '',
+    firstName: '',
+    lastName: '',
   });
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -60,6 +62,16 @@ const Signup: React.FC = () => {
     }
   };
 
+  const handleGoogleSignup = async () => {
+    try {
+      if (loginWithGoogle) {
+        await loginWithGoogle();
+      }
+    } catch (error) {
+      // Error is handled in the auth context
+    }
+  };
+
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -93,19 +105,52 @@ const Signup: React.FC = () => {
               </motion.div>
             )}
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium mb-2">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  value={credentials.firstName}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-3 rounded-lg bg-neural-light border border-neural-accent/20 focus:border-electric-purple focus:outline-none focus:ring-2 focus:ring-electric-purple/20 transition-all"
+                  placeholder="John"
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={credentials.lastName}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-3 rounded-lg bg-neural-light border border-neural-accent/20 focus:border-electric-purple focus:outline-none focus:ring-2 focus:ring-electric-purple/20 transition-all"
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-2">
-                Full Name
+              <label htmlFor="username" className="block text-sm font-medium mb-2">
+                Username
               </label>
               <input
                 type="text"
-                id="name"
-                name="name"
-                value={credentials.name}
+                id="username"
+                name="username"
+                value={credentials.username}
                 onChange={handleInputChange}
                 required
                 className="w-full px-4 py-3 rounded-lg bg-neural-light border border-neural-accent/20 focus:border-electric-purple focus:outline-none focus:ring-2 focus:ring-electric-purple/20 transition-all"
-                placeholder="John Doe"
+                placeholder="johndoe"
               />
             </div>
 
@@ -208,6 +253,7 @@ const Signup: React.FC = () => {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
+                onClick={handleGoogleSignup}
                 className="w-full inline-flex justify-center items-center px-4 py-3 border border-neural-accent/20 rounded-lg hover:bg-neural-light transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

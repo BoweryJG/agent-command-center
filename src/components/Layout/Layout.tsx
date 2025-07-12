@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { UserRole } from '../../types/auth.types';
 
@@ -62,7 +62,7 @@ const Layout: React.FC = () => {
   // Filter nav items based on permissions
   const filteredNavItems = navItems.filter((item) => {
     if (item.requiredRoles && user) {
-      return item.requiredRoles.includes(user.role);
+      return item.requiredRoles.map(r => r.toString()).includes(user.role);
     }
     if (item.permission) {
       return permissions.can(item.permission);
@@ -118,11 +118,11 @@ const Layout: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-0.5">
                   <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-sm font-bold">
-                    {user.name.charAt(0).toUpperCase()}
+                    {(user.firstName || user.username || user.email).charAt(0).toUpperCase()}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.name}</p>
+                  <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
                   <p className="text-xs text-text-muted capitalize">{user.role.replace('_', ' ')}</p>
                 </div>
               </div>
@@ -157,7 +157,7 @@ const Layout: React.FC = () => {
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-0.5">
                   <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-xs font-bold">
-                    {user?.name.charAt(0).toUpperCase()}
+                    {(user?.firstName || user?.username || user?.email || '').charAt(0).toUpperCase()}
                   </div>
                 </div>
                 <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
