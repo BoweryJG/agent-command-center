@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AgentCardCarousel, GhibliAgent } from '../components/AgentCard';
-import { ParticleEffects } from '../components/AgentCard/ParticleEffects';
+import { getParticlesByElement } from '../components/AgentCard/ParticleEffects';
 
 const Dashboard: React.FC = () => {
   const [selectedElement, setSelectedElement] = useState<'forest' | 'fire' | 'water' | 'wind' | 'earth' | 'spirit'>('forest');
@@ -27,8 +27,9 @@ const Dashboard: React.FC = () => {
       stats: {
         power: 85,
         wisdom: 92,
+        speed: 80,
         harmony: 88,
-        rarity_score: 750
+        spirit: 85
       }
     },
     {
@@ -50,8 +51,9 @@ const Dashboard: React.FC = () => {
       stats: {
         power: 96,
         wisdom: 78,
+        speed: 90,
         harmony: 85,
-        rarity_score: 920
+        spirit: 88
       }
     },
     {
@@ -73,8 +75,9 @@ const Dashboard: React.FC = () => {
       stats: {
         power: 88,
         wisdom: 99,
+        speed: 60,
         harmony: 95,
-        rarity_score: 1000
+        spirit: 99
       }
     },
     {
@@ -96,8 +99,9 @@ const Dashboard: React.FC = () => {
       stats: {
         power: 82,
         wisdom: 87,
+        speed: 85,
         harmony: 90,
-        rarity_score: 760
+        spirit: 80
       }
     },
     {
@@ -119,8 +123,9 @@ const Dashboard: React.FC = () => {
       stats: {
         power: 90,
         wisdom: 75,
+        speed: 40,
         harmony: 80,
-        rarity_score: 450
+        spirit: 70
       }
     },
     {
@@ -142,8 +147,9 @@ const Dashboard: React.FC = () => {
       stats: {
         power: 94,
         wisdom: 98,
+        speed: 95,
         harmony: 100,
-        rarity_score: 1200
+        spirit: 100
       }
     }
   ];
@@ -198,8 +204,8 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen relative overflow-hidden">
       {/* Animated Background */}
       <div className="fixed inset-0 -z-10">
-        <ParticleEffects element={selectedElement} />
-        <div className="absolute inset-0 bg-gradient-to-br from-ghibli-sage/20 via-ghibli-mist/30 to-ghibli-twilight/20" />
+        {React.createElement(getParticlesByElement(selectedElement), { count: 8 })}
+        <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-blue-500/30 to-purple-500/20" />
       </div>
 
       <div className="relative z-10 space-y-8 p-6">
@@ -209,10 +215,10 @@ const Dashboard: React.FC = () => {
           transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-ghibli-forest to-ghibli-ember bg-clip-text text-transparent mb-4">
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-green-600 to-orange-500 bg-clip-text text-transparent mb-4">
             Agent Command Center
           </h1>
-          <p className="text-xl text-ghibli-sage/80 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Welcome to your magical collection of AI agents. Each spirit brings unique powers and wisdom to your digital realm.
           </p>
         </motion.div>

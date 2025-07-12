@@ -20,6 +20,14 @@ export interface GhibliAgent {
   abilities: string[];
   avatar?: string;
   rarity: 'common' | 'rare' | 'legendary' | 'mythical';
+  personality?: string;
+  backstory?: string;
+  ghibli_theme?: {
+    card_color: string;
+    nature_element: string;
+    animation_type: string;
+    special_particles: string;
+  };
 }
 
 interface GhibliAgentCardProps {
