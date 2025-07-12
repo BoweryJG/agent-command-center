@@ -7,6 +7,7 @@ import { AuthProvider } from './contexts/SupabaseAuthContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
+import AgentDashboard from './pages/AgentDashboard';
 import VoiceStudio from './pages/VoiceStudio';
 import PersonalityForge from './pages/PersonalityForge';
 import AgentAcademy from './pages/AgentAcademy';
@@ -52,6 +53,7 @@ function App() {
               >
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="agents" element={<AgentDashboard />} />
                 <Route path="voice-studio" element={<VoiceStudio />} />
                 <Route path="personality-forge" element={<PersonalityForge />} />
                 <Route
