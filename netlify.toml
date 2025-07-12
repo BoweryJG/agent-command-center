@@ -5,7 +5,7 @@
 [build.environment]
   REACT_APP_API_URL = "https://osbackend-zl1h.onrender.com"
   REACT_APP_WS_URL = "wss://osbackend-zl1h.onrender.com"
-  CI = "true"
+  CI = "false"
 
 [[redirects]]
   from = "/api/*"
