@@ -1,5 +1,5 @@
 import React from 'react';
-import { AgentCardCarousel, GhibliAgent } from './index';
+import { AgentCardCarousel, GhibliAgent, GhibliAgentCard } from './index';
 
 // Sample agents data showcasing different nature elements and rarities
 const sampleAgents: GhibliAgent[] = [
