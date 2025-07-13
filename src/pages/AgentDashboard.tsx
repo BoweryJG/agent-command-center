@@ -146,13 +146,13 @@ const AgentDashboard: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Active Clients</p>
+                <p className="text-gray-500 text-sm">Active Agents</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {new Set(agents.map(a => a.client.id)).size}
+                  {agents.filter(a => a.status === 'active').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🏢</span>
+                <span className="text-2xl">⚡</span>
               </div>
             </div>
           </motion.div>
@@ -230,11 +230,11 @@ const AgentDashboard: React.FC = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                        {agent.avatar || agent.name.charAt(0)}
+                        {agent.name.charAt(0)}
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-800">{agent.name}</h3>
-                        <p className="text-sm text-gray-500">{agent.role}</p>
+                        <p className="text-sm text-gray-500">{agent.type}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -245,18 +245,29 @@ const AgentDashboard: React.FC = () => {
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="font-medium">Client:</span>
-                      <span>{agent.client.name}</span>
+                      <span className="font-medium">Type:</span>
+                      <span>{agent.type}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="font-medium">Project:</span>
-                      <span>{agent.client.project}</span>
+                      <span className="font-medium">Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs ${agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {agent.status}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="w-4 h-4" />
-                      <span>{agent.voice.provider} - {agent.voice.voiceName || agent.voice.voiceId}</span>
-                    </div>
+                    {agent.voiceConfig.enabled && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-4 h-4" />
+                        <span>Voice: {agent.voiceConfig.voiceId || 'Default'}</span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Description */}
+                  {agent.description && (
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-600 line-clamp-2">{agent.description}</p>
+                    </div>
+                  )}
 
                   {/* Languages */}
                   <div className="flex flex-wrap gap-1 mt-3">
@@ -266,6 +277,17 @@ const AgentDashboard: React.FC = () => {
                       </span>
                     ))}
                   </div>
+
+                  {/* Tags */}
+                  {agent.tags && agent.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {agent.tags.slice(0, 3).map((tag) => (
+                        <span key={tag} className="px-2 py-1 bg-blue-100 text-xs text-blue-800 rounded">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Agent Actions */}

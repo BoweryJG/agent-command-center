@@ -2,9 +2,21 @@ import { ManagedAgent, AgentTemplate, DeploymentConfig } from '../types/agent.ty
 import { supabase } from './supabase.service';
 
 class AgentManagementService {
-  // Fetch all agents
+  private readonly AGENTBACKEND_URL = 'https://agentbackend-2932.onrender.com';
+
+  // Fetch all agents from centralized agentbackend
   async getAllAgents(): Promise<ManagedAgent[]> {
     try {
+      // First fetch from agentbackend
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.agents) {
+          return this.convertBackendAgentsToManaged(data.agents);
+        }
+      }
+
+      // Fallback to local database
       const { data, error } = await supabase
         .from('managed_agents')
         .select('*')
@@ -16,6 +28,53 @@ class AgentManagementService {
       console.error('Error fetching agents:', error);
       return [];
     }
+  }
+
+  // Convert agentbackend format to ManagedAgent format
+  private convertBackendAgentsToManaged(backendAgents: any[]): ManagedAgent[] {
+    return backendAgents.map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      type: agent.category || 'general',
+      status: agent.active ? 'active' : 'inactive',
+      description: agent.tagline || agent.role || '',
+      personality: {
+        traits: agent.personality?.traits || [],
+        tone: agent.personality?.tone || agent.personality?.communication_style || 'professional',
+        specialties: agent.personality?.specialties || [],
+        language: [agent.language || 'en']
+      },
+      configuration: {
+        capabilities: Object.keys(agent.capabilities || {}).filter(key => agent.capabilities[key]),
+        knowledgeBase: agent.personality?.specialties || [],
+        restrictions: []
+      },
+      voiceConfig: {
+        enabled: agent.voice_config?.enabled || false,
+        voiceId: agent.voice_config?.voice_id || agent.voiceId || 'default',
+        settings: {
+          stability: agent.voice_config?.settings?.stability || 0.7,
+          similarityBoost: agent.voice_config?.settings?.similarityBoost || 0.8,
+          style: agent.voice_config?.settings?.style || 0.5,
+          speakerBoost: agent.voice_config?.settings?.useSpeakerBoost !== false
+        }
+      },
+      deployment: {
+        status: 'deployed',
+        url: this.AGENTBACKEND_URL,
+        lastDeployed: new Date(),
+        environment: 'production'
+      },
+      analytics: {
+        totalInteractions: 0,
+        successRate: 95,
+        avgResponseTime: 1.2,
+        lastActive: new Date()
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tags: [agent.category, agent.subcategory].filter(Boolean)
+    }));
   }
 
   // Create a new agent
@@ -135,7 +194,7 @@ class AgentManagementService {
         category: 'dental',
         baseConfig: {
           type: 'customer-service',
-          role: 'Receptionist',
+          description: 'Professional dental office receptionist for appointment scheduling and patient inquiries',
           personality: {
             traits: ['Professional', 'Warm', 'Efficient'],
             tone: 'friendly-professional',
@@ -146,6 +205,16 @@ class AgentManagementService {
             capabilities: ['scheduling', 'insurance-check', 'basic-dental-info'],
             knowledgeBase: ['dental-procedures', 'office-policies', 'insurance-info'],
             restrictions: ['no-medical-advice', 'no-diagnosis']
+          },
+          voiceConfig: {
+            enabled: true,
+            voiceId: 'default',
+            settings: {
+              stability: 0.7,
+              similarityBoost: 0.8,
+              style: 0.5,
+              useSpeakerBoost: true
+            }
           }
         }
       },
@@ -156,7 +225,7 @@ class AgentManagementService {
         category: 'retail',
         baseConfig: {
           type: 'sales',
-          role: 'Sales Specialist',
+          description: 'Engaging sales agent for product inquiries and conversions',
           personality: {
             traits: ['Enthusiastic', 'Knowledgeable', 'Persuasive'],
             tone: 'upbeat-professional',
@@ -167,6 +236,16 @@ class AgentManagementService {
             capabilities: ['product-info', 'pricing', 'order-processing'],
             knowledgeBase: ['product-catalog', 'pricing-tiers', 'promotions'],
             restrictions: ['no-false-claims', 'ethical-selling']
+          },
+          voiceConfig: {
+            enabled: true,
+            voiceId: 'default',
+            settings: {
+              stability: 0.7,
+              similarityBoost: 0.8,
+              style: 0.5,
+              useSpeakerBoost: true
+            }
           }
         }
       }
