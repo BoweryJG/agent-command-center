@@ -128,14 +128,14 @@ class AgentManagementService {
   }
 
   // Test agent with a message
-  async testAgent(id: string, data: { message: string; context?: Record<string, string> }): Promise<any> {
+  async testAgent(id: string, testData: { message: string; context?: Record<string, string> }): Promise<any> {
     try {
       const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(testData)
       });
 
       if (!response.ok) {
@@ -152,14 +152,14 @@ class AgentManagementService {
   }
 
   // Interact with agent
-  async interactWithAgent(id: string, data: { message: string; sessionId?: string; history?: any[] }): Promise<any> {
+  async interactWithAgent(id: string, interactionData: { message: string; sessionId?: string; history?: any[] }): Promise<any> {
     try {
       const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}/interact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(interactionData)
       });
 
       if (!response.ok) {
