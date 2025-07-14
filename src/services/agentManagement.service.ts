@@ -18,12 +18,12 @@ class AgentManagementService {
 
       // Fallback to local database
       const { data, error } = await supabase
-        .from('managed_agents')
+        .from('agents')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return this.convertSupabaseAgentsToManaged(data || []);
     } catch (error) {
       console.error('Error fetching agents:', error);
       return [];
