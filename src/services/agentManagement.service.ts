@@ -382,6 +382,38 @@ class AgentManagementService {
     }
   }
 
+  // Delete an agent
+  async deleteAgent(agentId: string): Promise<boolean> {
+    try {
+      // Delete from agent backend
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${agentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete agent: ${response.statusText}`);
+      }
+
+      // Also delete deployment status from Supabase
+      const { error } = await supabase
+        .from('agent_deployment_status')
+        .delete()
+        .eq('external_agent_id', agentId);
+
+      if (error) {
+        console.error('Error deleting deployment status:', error);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      throw error;
+    }
+  }
+
   // Get agent templates
   async getAgentTemplates(): Promise<AgentTemplate[]> {
     // These could come from a database or be hardcoded
