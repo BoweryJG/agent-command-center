@@ -78,9 +78,18 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
         const audio = new Audio(voice.audioUrl);
         audioRef.current = audio;
         
-        audio.play().catch(err => {
-          console.error('Failed to play audio:', err);
-          alert('Voice preview is not available yet. The voice API is currently being implemented.');
+        audio.play().catch(async err => {
+          console.error('Failed to play audio, using TTS:', err);
+          // Use browser TTS as fallback
+          try {
+            const { ttsService } = await import('../../services/textToSpeech.service');
+            await ttsService.speak(`Hello, I'm ${voice.name}. This is how I sound.`, {
+              voiceId: voice.id
+            });
+          } catch (ttsError) {
+            console.error('TTS also failed:', ttsError);
+            alert('Voice preview requires a browser that supports speech synthesis.');
+          }
           setPlayingVoiceId(null);
         });
         
@@ -90,7 +99,15 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
         
         setPlayingVoiceId(voiceId);
       } else {
-        alert('Voice preview is not available yet. The voice API is currently being implemented.');
+        // No audio URL, use TTS directly
+        import('../../services/textToSpeech.service').then(({ ttsService }) => {
+          ttsService.speak(`Hello, I'm ${voice.name}. This is how I sound.`, {
+            voiceId: voice.id
+          }).catch(err => {
+            console.error('TTS failed:', err);
+            alert('Voice preview requires a browser that supports speech synthesis.');
+          });
+        });
       }
     }
   };

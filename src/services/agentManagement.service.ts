@@ -503,6 +503,7 @@ class AgentManagementService {
   // Preview voice
   async previewVoice(data: { voiceId: string; text: string; settings?: any }): Promise<Blob> {
     try {
+      // First try the API endpoint
       const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices/preview`, {
         method: 'POST',
         headers: {
@@ -512,15 +513,24 @@ class AgentManagementService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
+        // If API fails, use browser TTS
+        const { ttsService } = await import('./textToSpeech.service');
+        return await ttsService.generateAudioBlob(data.text, {
+          voiceId: data.voiceId,
+          ...data.settings
+        });
       }
 
       const blob = await response.blob();
       return blob;
     } catch (error) {
-      console.error('Error previewing voice:', error);
-      throw error;
+      // Fallback to browser TTS
+      console.log('Using browser text-to-speech as fallback');
+      const { ttsService } = await import('./textToSpeech.service');
+      return await ttsService.generateAudioBlob(data.text, {
+        voiceId: data.voiceId,
+        ...data.settings
+      });
     }
   }
 }

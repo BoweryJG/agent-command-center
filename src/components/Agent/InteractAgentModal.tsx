@@ -108,6 +108,18 @@ export const InteractAgentModal: React.FC<InteractAgentModalProps> = ({
         content: response.response,
         timestamp: new Date()
       }));
+      
+      // Speak the response if voice is enabled
+      if (agent.voiceConfig?.enabled) {
+        import('../../services/textToSpeech.service').then(({ ttsService }) => {
+          ttsService.speak(response.response, {
+            voiceId: agent.voiceConfig.voiceId || agent.voiceConfig.voice_id
+          }).catch(err => {
+            console.error('Failed to speak response:', err);
+          });
+        });
+      }
+      
       setIsLoading(false);
     } catch (error: any) {
       // Remove typing indicator and show error
