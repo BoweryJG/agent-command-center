@@ -103,9 +103,17 @@ const AgentDashboard: React.FC = () => {
   };
 
   const handleImportPedroAgents = async () => {
-    const imported = await agentManagementService.importPedroAgents();
-    if (imported.length > 0) {
-      await loadAgents();
+    try {
+      const imported = await agentManagementService.importPedroAgents();
+      if (imported.length > 0) {
+        await loadAgents();
+        alert(`Successfully imported ${imported.length} Pedro agents!`);
+      } else {
+        alert('No Pedro agents found to import.');
+      }
+    } catch (error) {
+      console.error('Error importing Pedro agents:', error);
+      alert('Failed to import Pedro agents. Please try again.');
     }
   };
 

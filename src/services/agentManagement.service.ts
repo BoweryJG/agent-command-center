@@ -38,6 +38,7 @@ interface DeploymentStatus {
 
 class AgentManagementService {
   private readonly AGENTBACKEND_URL = 'https://agentbackend-2932.onrender.com';
+  private readonly COMMAND_CENTER_BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   // Fetch all agents from agentbackend and merge with Supabase deployment status
   async getAllAgents(): Promise<ManagedAgent[]> {
@@ -303,6 +304,35 @@ class AgentManagementService {
       updatedAt: new Date(),
       tags: [agent.category, agent.subcategory].filter(Boolean)
     }));
+  }
+
+  // Import agents designated for Pedro from agent backend
+  async importPedroAgents(): Promise<ManagedAgent[]> {
+    try {
+      // Call the command center backend sync endpoint with pedro platform filter
+      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agent-sync/sync-from-backend?platform=pedro&save=true`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to sync Pedro agents: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to sync Pedro agents');
+      }
+
+      // Refresh the agent list to show the imported agents
+      return await this.getAllAgents();
+    } catch (error) {
+      console.error('Error importing Pedro agents:', error);
+      throw error;
+    }
   }
 
   // Get agent templates
