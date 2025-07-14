@@ -53,7 +53,9 @@ const AgentDashboard: React.FC = () => {
         agent.deployment?.status === 'deployed'
       );
       
-      // For now, show all deployed agents
+      // TODO: Filter by platform once platform info is available in agent data
+      // For now, split deployed agents between platforms
+      const pedroAgents = deployedAgents.slice(0, 5); // Pedro has 5 agent limit
       const repConnectAgents = deployedAgents;
       
       const message = [
