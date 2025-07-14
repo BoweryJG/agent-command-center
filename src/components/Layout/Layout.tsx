@@ -92,7 +92,7 @@ const Layout: React.FC = () => {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <aside className={`fixed lg:relative w-72 h-full bg-neural-darker border-r border-neural-accent/20 z-50 transition-transform duration-300 ${
+      <aside className={`fixed lg:sticky lg:top-0 w-72 h-screen bg-neural-darker border-r border-neural-accent/20 z-50 transition-transform duration-300 flex flex-col ${
         showMobileMenu ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         <div className="p-4 sm:p-6 flex items-center justify-between">
@@ -115,7 +115,7 @@ const Layout: React.FC = () => {
           </button>
         </div>
 
-        <nav className="px-4 space-y-2">
+        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
           {filteredNavItems.map((item, index) => (
             <motion.div
               key={item.path}
@@ -144,7 +144,7 @@ const Layout: React.FC = () => {
         </nav>
 
         {/* User Profile Section */}
-        <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6 space-y-3 sm:space-y-4">
+        <div className="p-4 sm:p-6 mt-auto space-y-3 sm:space-y-4">
           {user && (
             <div className="neural-card p-2 sm:p-3">
               <div className="flex items-center gap-2 sm:gap-3">
