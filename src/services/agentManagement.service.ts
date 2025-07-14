@@ -77,6 +77,36 @@ class AgentManagementService {
     }));
   }
 
+  // Get a single agent by ID
+  async getAgent(id: string): Promise<ManagedAgent | null> {
+    try {
+      // First try to fetch from local database
+      const { data, error } = await supabase
+        .from('managed_agents')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!error && data) {
+        return data;
+      }
+
+      // If not found locally, try to fetch from agentbackend
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}`);
+      if (response.ok) {
+        const agentData = await response.json();
+        if (agentData) {
+          return this.convertBackendAgentsToManaged([agentData])[0];
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching agent:', error);
+      return null;
+    }
+  }
+
   // Create a new agent
   async createAgent(agent: Omit<ManagedAgent, 'id' | 'createdAt' | 'updatedAt'>): Promise<ManagedAgent | null> {
     try {
