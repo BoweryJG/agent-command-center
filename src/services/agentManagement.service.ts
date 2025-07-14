@@ -209,7 +209,7 @@ class AgentManagementService {
   // Update deployment status in Supabase only
   async updateDeploymentStatus(
     externalId: string, 
-    status: 'draft' | 'ready' | 'live',
+    status: 'draft' | 'testing' | 'deployed',
     configuration?: any
   ): Promise<boolean> {
     try {
