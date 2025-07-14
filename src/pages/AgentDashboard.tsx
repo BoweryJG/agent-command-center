@@ -48,9 +48,9 @@ const AgentDashboard: React.FC = () => {
       // Get all agents which includes deployment status
       const allAgents = await agentManagementService.getAllAgents();
       
-      // Filter agents that are deployed (live status)
+      // Filter agents that are deployed (deployed status)
       const deployedAgents = allAgents.filter(agent => 
-        agent.deployment?.status === 'live'
+        agent.deployment?.status === 'deployed'
       );
       
       // For now, show all deployed agents
