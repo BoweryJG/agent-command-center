@@ -162,7 +162,12 @@ export const VoicePreviewModal: React.FC<VoicePreviewModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          onClick={(e) => {
+            // Only close if clicking directly on backdrop
+            if (e.target === e.currentTarget) {
+              onClose();
+            }
+          }}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
