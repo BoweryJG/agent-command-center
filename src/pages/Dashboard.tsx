@@ -1,13 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bot, Activity, BarChart3, Rocket } from 'lucide-react';
 import AgentDashboard from './AgentDashboard';
 import SystemHealth from '../components/Dashboard/SystemHealth';
 import Analytics from '../components/Dashboard/Analytics';
 import DeploymentManager from '../components/Dashboard/DeploymentManager';
 import { motion } from 'framer-motion';
+import { agentManagementService } from '../services/agentManagement.service';
+
+interface AgentCounts {
+  total: number;
+  live: number;
+  ready: number;
+  draft: number;
+}
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'agents' | 'health' | 'analytics' | 'deployments'>('agents');
+  const [agentCounts, setAgentCounts] = useState<AgentCounts>({
+    total: 0,
+    live: 0,
+    ready: 0,
+    draft: 0
+  });
+  const [loadingCounts, setLoadingCounts] = useState(true);
 
   const tabs = [
     { id: 'agents', label: 'Agents', icon: Bot, component: AgentDashboard },
@@ -17,6 +32,30 @@ const Dashboard: React.FC = () => {
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || AgentDashboard;
+
+  useEffect(() => {
+    loadAgentCounts();
+  }, []);
+
+  const loadAgentCounts = async () => {
+    try {
+      setLoadingCounts(true);
+      const agents = await agentManagementService.getAllAgents();
+      
+      const counts: AgentCounts = {
+        total: agents.length,
+        live: agents.filter(a => a.deployment.status === 'deployed').length,
+        ready: agents.filter(a => a.deployment.status === 'testing').length,
+        draft: agents.filter(a => a.deployment.status === 'draft').length
+      };
+      
+      setAgentCounts(counts);
+    } catch (error) {
+      console.error('Error loading agent counts:', error);
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -29,8 +68,31 @@ const Dashboard: React.FC = () => {
               <p className="text-sm text-gray-500 mt-1">Manage your AI agent ecosystem</p>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">29 Agents Online</span>
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              {loadingCounts ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                  <span className="text-sm text-gray-500">Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <span className="text-sm text-gray-500">
+                    {agentCounts.total} Agents Total
+                  </span>
+                  <span className="text-sm text-gray-400">•</span>
+                  <span className="text-sm text-green-600 font-medium">
+                    {agentCounts.live} Live
+                  </span>
+                  <span className="text-sm text-gray-400">•</span>
+                  <span className="text-sm text-yellow-600 font-medium">
+                    {agentCounts.ready} Ready
+                  </span>
+                  <span className="text-sm text-gray-400">•</span>
+                  <span className="text-sm text-gray-600 font-medium">
+                    {agentCounts.draft} Draft
+                  </span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                </>
+              )}
             </div>
           </div>
         </div>

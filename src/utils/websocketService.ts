@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { useEffect, useState } from 'react';
 
 // WebSocket event types
 export enum WebSocketEventType {
@@ -345,7 +346,6 @@ export default websocketService;
 export { WebSocketService };
 
 // React hooks
-import { useEffect, useState } from 'react';
 
 /**
  * React hook for WebSocket connection

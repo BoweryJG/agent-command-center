@@ -1,8 +1,63 @@
-import { ManagedAgent, AgentTemplate, DeploymentConfig } from '../types/agent.types';
+import { ManagedAgent, AgentTemplate, DeploymentConfig, VoiceSettings } from '../types/agent.types';
 import { supabase } from './supabase.service';
 
+// API Response Types
+interface AgentBackendResponse {
+  success: boolean;
+  agents?: any[];
+  error?: string;
+}
+
+interface DeploymentResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+interface ImportResponse {
+  success: boolean;
+  agents: ManagedAgent[];
+  error?: string;
+}
+
+interface VoiceTestResponse {
+  success: boolean;
+  audioUrl?: string;
+  error?: string;
+}
+
+interface TestAgentResponse {
+  success: boolean;
+  response?: {
+    text: string;
+    confidence: number;
+    processingTime: number;
+  };
+  error?: string;
+}
+
+interface InteractAgentResponse {
+  success: boolean;
+  response?: {
+    text: string;
+    audioUrl?: string;
+    emotion?: string;
+    confidence: number;
+  };
+  sessionId?: string;
+  error?: string;
+}
+
+interface VoicePreviewResponse {
+  success: boolean;
+  audioUrl?: string;
+  duration?: number;
+  error?: string;
+}
+
 class AgentManagementService {
-  private readonly AGENTBACKEND_URL = 'https://agentbackend-2932.onrender.com';
+  private readonly AGENTBACKEND_URL = process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
+  private readonly BACKEND_URL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
 
   // Fetch all agents from centralized agentbackend
   async getAllAgents(): Promise<ManagedAgent[]> {
@@ -10,7 +65,7 @@ class AgentManagementService {
       // First fetch from agentbackend
       const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents`);
       if (response.ok) {
-        const data = await response.json();
+        const data: AgentBackendResponse = await response.json();
         if (data.success && data.agents) {
           return this.convertBackendAgentsToManaged(data.agents);
         }
@@ -174,7 +229,7 @@ class AgentManagementService {
   async deployAgent(config: DeploymentConfig): Promise<boolean> {
     try {
       // Call backend API to deploy agent
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/agents/deploy`, {
+      const response = await fetch(`${this.BACKEND_URL}/api/agents/deploy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +237,15 @@ class AgentManagementService {
         body: JSON.stringify(config)
       });
 
-      if (!response.ok) throw new Error('Deployment failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Deployment failed');
+      }
+
+      const data: DeploymentResponse = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Deployment failed');
+      }
 
       // Update agent deployment status
       await this.updateAgent(config.agentId, {
@@ -204,14 +267,21 @@ class AgentManagementService {
   // Import agents from Pedro project
   async importPedroAgents(): Promise<ManagedAgent[]> {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/agents/import-pedro`, {
+      const response = await fetch(`${this.BACKEND_URL}/api/agents/import-pedro`, {
         method: 'POST',
       });
 
-      if (!response.ok) throw new Error('Import failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Import failed');
+      }
 
-      const { agents } = await response.json();
-      return agents;
+      const data: ImportResponse = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Import failed');
+      }
+      
+      return data.agents;
     } catch (error) {
       console.error('Error importing Pedro agents:', error);
       return [];
@@ -290,7 +360,7 @@ class AgentManagementService {
   // Test agent voice
   async testAgentVoice(agentId: string, text: string): Promise<string | null> {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/voice/test`, {
+      const response = await fetch(`${this.BACKEND_URL}/api/voice/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,13 +368,122 @@ class AgentManagementService {
         body: JSON.stringify({ agentId, text })
       });
 
-      if (!response.ok) throw new Error('Voice test failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Voice test failed');
+      }
 
       const blob = await response.blob();
       return URL.createObjectURL(blob);
     } catch (error) {
       console.error('Error testing voice:', error);
       return null;
+    }
+  }
+
+  // Test agent with a sample query
+  async testAgent(agentId: string, query: string): Promise<TestAgentResponse> {
+    try {
+      const response = await fetch(`${this.BACKEND_URL}/api/agents/${agentId}/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Agent test failed');
+      }
+
+      const data: TestAgentResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error testing agent:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Interactive chat with agent
+  async interactWithAgent(agentId: string, message: string, sessionId?: string): Promise<InteractAgentResponse> {
+    try {
+      const response = await fetch(`${this.BACKEND_URL}/api/agents/${agentId}/interact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message, sessionId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Interaction failed');
+      }
+
+      const data: InteractAgentResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error interacting with agent:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Generate voice preview for text
+  async generateVoicePreview(voiceId: string, text: string, settings?: VoiceSettings): Promise<VoicePreviewResponse> {
+    try {
+      const response = await fetch(`${this.BACKEND_URL}/api/voice/preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voiceId, text, settings })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Voice preview failed');
+      }
+
+      const data: VoicePreviewResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error generating voice preview:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Check agent deployment status
+  async checkDeploymentStatus(agentId: string, platformId: string): Promise<{
+    status: 'pending' | 'deploying' | 'deployed' | 'failed';
+    message?: string;
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(`${this.BACKEND_URL}/api/deployments/status/${agentId}/${platformId}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Status check failed');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking deployment status:', error);
+      return {
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
     }
   }
 }

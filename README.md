@@ -2,9 +2,11 @@
 
 A sophisticated AI agent management platform that serves as the central hub for configuring and deploying AI agents across multiple client platforms. Built with React, TypeScript, and Express.js, featuring a stunning Neural Elegance design system.
 
-![Agent Command Center](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Agent Command Center](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)
+![React](https://img.shields.io/badge/react-18.2.0-61dafb.svg)
+![TypeScript](https://img.shields.io/badge/typescript-5.0.0-blue.svg)
 
 ## 🌟 Overview
 
@@ -12,14 +14,18 @@ Agent Command Center is your mission control for AI agent deployment. Build agen
 
 ### Key Features
 
-- **🤖 Agent Management**: Import, configure, and deploy AI agents
-- **🎙️ Voice Studio**: Design and test custom voice profiles
-- **🧬 Personality Forge**: Craft unique AI personalities
+- **🤖 Agent Management**: Import, configure, test, and deploy AI agents
+- **🎙️ Voice Studio**: Design and test custom voice profiles with real-time preview
+- **🧬 Personality Forge**: Craft unique AI personalities with traits and behaviors
+- **💬 Interactive Testing**: Real-time chat interface to test agent responses
 - **🎓 Agent Academy**: Advanced training modules (Admin only)
-- **⚡ Quick Clips**: Pre-built conversation snippets
-- **📊 Real-time Analytics**: Monitor agent performance
-- **🔐 Role-based Access**: Secure multi-user environment
+- **⚡ Quick Clips**: Pre-built conversation snippets for rapid deployment
+- **📊 Real-time Analytics**: Monitor agent performance with live metrics
+- **🔐 Role-based Access**: Secure multi-user environment with granular permissions
 - **🎨 Neural Elegance UI**: Beautiful dark theme with gradient accents
+- **🔄 WebSocket Support**: Real-time updates with automatic REST fallback
+- **🚀 Multi-platform Deployment**: Deploy to Pedro, RepConnect1, and custom platforms
+- **📈 Performance Monitoring**: Track response times, success rates, and user sentiment
 
 ## 🚀 Quick Start
 
@@ -52,23 +58,44 @@ cd ..
 
 Create `.env` in the root directory:
 ```env
+# API Configuration
 REACT_APP_API_URL=http://localhost:3001
+REACT_APP_BACKEND_URL=http://localhost:3001
 REACT_APP_WS_URL=ws://localhost:3001
 REACT_APP_ENVIRONMENT=development
+
+# Supabase Configuration
 REACT_APP_SUPABASE_URL=your_supabase_url
 REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Feature Flags (optional)
+REACT_APP_ENABLE_VOICE=true
+REACT_APP_ENABLE_ANALYTICS=true
+REACT_APP_ENABLE_WEBSOCKET=true
 ```
 
 Create `backend/.env`:
 ```env
+# Server Configuration
 PORT=3001
+NODE_ENV=development
+
+# Database Configuration
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_KEY=your_supabase_service_key
+
+# CORS Configuration
 ALLOWED_ORIGINS=http://localhost:3000
+
+# External Services
 AGENT_BACKEND_URL=https://agentbackend-2932.onrender.com
 PEDRO_BACKEND_URL=https://pedrobackend.onrender.com
 REPCONNECT1_BACKEND_URL=https://osbackend-zl1h.onrender.com
+
+# Optional Services
+ELEVENLABS_API_KEY=your_elevenlabs_key # For voice generation
+OPENAI_API_KEY=your_openai_key # For AI features
 ```
 
 4. **Start Development Servers**
@@ -251,19 +278,40 @@ Update `.env` files with production URLs and keys.
 #### Agents
 - `GET /api/agents` - List all agents
 - `POST /api/agents` - Create agent
+- `GET /api/agents/:id` - Get specific agent
 - `PUT /api/agents/:id` - Update agent
 - `DELETE /api/agents/:id` - Delete agent
+- `POST /api/agents/:id/test` - Test agent with sample query
+- `POST /api/agents/:id/interact` - Interactive chat with agent
 
 #### Deployments
 - `POST /api/deployments` - Deploy agent
 - `DELETE /api/deployments/:id` - Undeploy agent
 - `GET /api/deployments/agent/:agentId` - Get agent deployments
+- `GET /api/deployments/status/:agentId/:platformId` - Check deployment status
+
+#### Voice
+- `GET /api/voice` - List available voices
+- `GET /api/voice/:id` - Get specific voice
+- `POST /api/voice/generate` - Generate voice preview
+- `POST /api/voice/clone` - Clone voice from audio
+- `POST /api/voice/test` - Test agent voice
+- `POST /api/voice/preview` - Preview voice with settings
 
 #### Agent Sync
 - `GET /api/agent-sync/sync-from-backend` - Sync from Agent Backend
 - `POST /api/agent-sync/deploy-to-pedro/:agentId` - Deploy to Pedro
 - `POST /api/agent-sync/deploy-to-repconnect1/:agentId` - Deploy to RepConnect1
 - `GET /api/agent-sync/pedro-agents` - List Pedro's agents
+- `POST /api/agent-sync/import-pedro` - Import agents from Pedro
+
+#### WebSocket Events
+- `connection` - WebSocket connection status
+- `agent-update` - Real-time agent updates
+- `deployment-status` - Deployment progress updates
+- `voice-generation-progress` - Voice generation progress
+- `interaction-response` - Real-time chat responses
+- `analytics-update` - Live analytics updates
 
 ## 🐛 Troubleshooting
 
@@ -284,6 +332,53 @@ Update `.env` files with production URLs and keys.
 **Agent sync not working**
 - Ensure Agent Backend is accessible
 - Check network/firewall settings
+
+**WebSocket connection failing**
+- Check if WebSocket port is open
+- Verify REACT_APP_WS_URL is correct
+- System will automatically fallback to REST
+
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+*Central command view with agent statistics and deployment status*
+
+### Agent Management
+![Agent Management](docs/screenshots/agent-management.png)
+*Import, configure, and deploy agents across platforms*
+
+### Voice Studio
+![Voice Studio](docs/screenshots/voice-studio.png)
+*Design and test custom voice profiles*
+
+### Interactive Testing
+![Interactive Testing](docs/screenshots/interactive-testing.png)
+*Real-time chat interface for agent testing*
+
+### Analytics Dashboard
+![Analytics](docs/screenshots/analytics.png)
+*Monitor performance metrics and user sentiment*
+
+## 🔮 Roadmap
+
+### Version 1.1
+- [ ] Advanced voice cloning with ElevenLabs integration
+- [ ] Multi-language support (10+ languages)
+- [ ] A/B testing framework for agent responses
+- [ ] Custom webhook integrations
+
+### Version 1.2
+- [ ] AI-powered agent optimization
+- [ ] Automated performance tuning
+- [ ] Advanced sentiment analysis
+- [ ] Team collaboration features
+
+### Version 2.0
+- [ ] Visual agent builder (drag-and-drop)
+- [ ] Marketplace for agent templates
+- [ ] Enterprise SSO integration
+- [ ] Advanced compliance tools
 
 ## 📄 License
 
