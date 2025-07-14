@@ -335,6 +335,53 @@ class AgentManagementService {
     }
   }
 
+  // Deploy agent to a specific platform
+  async deployAgent(deploymentConfig: any): Promise<boolean> {
+    try {
+      const { agentId, targetEnvironment } = deploymentConfig;
+      
+      // Determine the correct endpoint based on platform
+      let endpoint = '';
+      if (targetEnvironment === 'pedro') {
+        endpoint = `${this.COMMAND_CENTER_BACKEND_URL}/api/agent-sync/deploy-to-pedro/${agentId}`;
+      } else if (targetEnvironment === 'repconnect1') {
+        endpoint = `${this.COMMAND_CENTER_BACKEND_URL}/api/agent-sync/deploy-to-repconnect1/${agentId}`;
+      } else {
+        throw new Error(`Unknown target environment: ${targetEnvironment}`);
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Deployment failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Deployment failed');
+      }
+
+      // Update local deployment status
+      await this.updateDeploymentStatus(agentId, 'deployed', {
+        platform: targetEnvironment,
+        deployedAt: new Date().toISOString()
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deploying agent:', error);
+      throw error;
+    }
+  }
+
   // Get agent templates
   async getAgentTemplates(): Promise<AgentTemplate[]> {
     // These could come from a database or be hardcoded
