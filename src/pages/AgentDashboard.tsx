@@ -39,8 +39,31 @@ const AgentDashboard: React.FC = () => {
       const response = await axios.get('http://localhost:3001/api/agent-sync/sync-from-backend');
       if (response.data.success) {
         const syncedAgents = response.data.agents;
-        // Show alert with sync results
-        alert(`Synced ${syncedAgents.length} agents from Agent Backend!\n\nThese agents are available to deploy to Pedro or RepConnect1.`);
+        
+        // Import each agent to local storage for configuration
+        let importCount = 0;
+        for (const agent of syncedAgents) {
+          try {
+            // Check if agent already exists
+            const exists = agents.find(a => a.id === agent.id);
+            if (!exists) {
+              // Import agent to local system
+              await agentManagementService.createAgent({
+                ...agent,
+                source: 'agent-backend',
+                imported_at: new Date().toISOString(),
+                deployment_status: 'not_deployed'
+              });
+              importCount++;
+            }
+          } catch (err) {
+            console.error(`Failed to import agent ${agent.name}:`, err);
+          }
+        }
+        
+        // Show results
+        alert(`Agent Backend Sync Complete!\n\nTotal agents found: ${syncedAgents.length}\nNewly imported: ${importCount}\n\nYou can now configure and deploy these agents to Pedro or RepConnect1.`);
+        
         // Reload agents to show updated list
         await loadAgents();
       }
@@ -100,7 +123,9 @@ const AgentDashboard: React.FC = () => {
   };
 
   const handleCreateAgent = () => {
-    navigate('/agents/create');
+    // Redirect to Agent Backend to create agents
+    window.open('https://agentbackend-2932.onrender.com/agents/create', '_blank');
+    alert('Create your agent on the Agent Backend.\n\nAfter creating, use "Sync from Agent Backend" to import it here for configuration and deployment.');
   };
 
   const handleConfigureAgent = (agent: ManagedAgent) => {
@@ -112,8 +137,29 @@ const AgentDashboard: React.FC = () => {
   };
 
   const handleDeployAgent = async (agent: ManagedAgent) => {
-    // TODO: Show deployment modal
-    console.log('Deploy agent:', agent);
+    const platform = prompt('Deploy to which platform?\n\n1. Pedro (max 5 agents)\n2. RepConnect1\n\nEnter 1 or 2:');
+    
+    if (platform === '1') {
+      try {
+        const response = await axios.post(`http://localhost:3001/api/agent-sync/deploy-to-pedro/${agent.id}`);
+        if (response.data.success) {
+          alert(`Successfully deployed ${agent.name} to Pedro!`);
+          await loadAgents();
+        }
+      } catch (error: any) {
+        alert(`Failed to deploy to Pedro: ${error.response?.data?.details || error.message}`);
+      }
+    } else if (platform === '2') {
+      try {
+        const response = await axios.post(`http://localhost:3001/api/agent-sync/deploy-to-repconnect1/${agent.id}`);
+        if (response.data.success) {
+          alert(`Successfully deployed ${agent.name} to RepConnect1!`);
+          await loadAgents();
+        }
+      } catch (error: any) {
+        alert(`Failed to deploy to RepConnect1: ${error.response?.data?.details || error.message}`);
+      }
+    }
   };
 
   const getStatusColor = (status: string) => {

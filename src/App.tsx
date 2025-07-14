@@ -17,6 +17,7 @@ import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import Unauthorized from './pages/Unauthorized';
 import AuthCallback from './pages/AuthCallback';
+import AgentConfiguration from './pages/AgentConfiguration';
 import { UserRole } from './types/auth.types';
 
 const queryClient = new QueryClient({
@@ -66,6 +67,7 @@ function App() {
                 />
                 <Route path="quick-clips" element={<QuickClips />} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="agents/:agentId/configure" element={<AgentConfiguration />} />
               </Route>
             </Routes>
           </AnimatePresence>
