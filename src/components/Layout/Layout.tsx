@@ -22,6 +22,12 @@ const navItems: NavItem[] = [
     color: 'from-electric-blue to-electric-cyan',
   },
   {
+    path: '/agents',
+    label: 'Agents',
+    icon: '🤖',
+    color: 'from-electric-purple to-electric-cyan',
+  },
+  {
     path: '/voice-studio',
     label: 'Voice Studio',
     icon: '🎙️',
@@ -53,6 +59,7 @@ const Layout: React.FC = () => {
   const permissions = usePermissions();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -71,17 +78,41 @@ const Layout: React.FC = () => {
   });
   return (
     <div className="min-h-screen bg-neural-dark flex">
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {showMobileMenu && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setShowMobileMenu(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-72 bg-neural-darker border-r border-neural-accent/20">
-        <div className="p-6">
+      <aside className={`fixed lg:relative w-72 h-full bg-neural-darker border-r border-neural-accent/20 z-50 transition-transform duration-300 ${
+        showMobileMenu ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
+        <div className="p-4 sm:p-6 flex items-center justify-between">
           <motion.h1 
-            className="text-2xl font-bold bg-gradient-to-r from-electric-blue to-electric-purple bg-clip-text text-transparent"
+            className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-electric-blue to-electric-purple bg-clip-text text-transparent"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
             Agent Command Center
           </motion.h1>
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setShowMobileMenu(false)}
+            className="lg:hidden text-text-muted hover:text-text-primary transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <nav className="px-4 space-y-2">
@@ -94,6 +125,7 @@ const Layout: React.FC = () => {
             >
               <NavLink
                 to={item.path}
+                onClick={() => setShowMobileMenu(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group ${
                     isActive
@@ -112,31 +144,31 @@ const Layout: React.FC = () => {
         </nav>
 
         {/* User Profile Section */}
-        <div className="absolute bottom-6 left-6 right-6 space-y-4">
+        <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6 space-y-3 sm:space-y-4">
           {user && (
-            <div className="neural-card p-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-0.5">
-                  <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-sm font-bold">
+            <div className="neural-card p-2 sm:p-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-0.5 flex-shrink-0">
+                  <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-xs sm:text-sm font-bold">
                     {(user.firstName || user.username || user.email).charAt(0).toUpperCase()}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
-                  <p className="text-xs text-text-muted capitalize">{user.role.replace('_', ' ')}</p>
+                  <p className="text-xs sm:text-sm font-medium truncate">{user.firstName} {user.lastName}</p>
+                  <p className="text-[10px] sm:text-xs text-text-muted capitalize">{user.role.replace('_', ' ')}</p>
                 </div>
               </div>
             </div>
           )}
           
           {/* Status Indicator */}
-          <div className="neural-card">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+          <div className="neural-card p-2 sm:p-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative flex-shrink-0">
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
+                <div className="absolute inset-0 w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-ping"></div>
               </div>
-              <span className="text-sm text-text-secondary">System Online</span>
+              <span className="text-xs sm:text-sm text-text-secondary">System Online</span>
             </div>
           </div>
         </div>
@@ -145,22 +177,32 @@ const Layout: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {/* Top Bar */}
-        <header className="bg-neural-darker border-b border-neural-accent/20 px-8 py-4">
+        <header className="bg-neural-darker border-b border-neural-accent/20 px-4 sm:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex-1" />
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="lg:hidden text-text-muted hover:text-text-primary transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            <div className="flex-1 lg:flex-1" />
             
             {/* User Menu */}
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-neural-light transition-colors"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-neural-light transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-0.5">
-                  <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-xs font-bold">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-electric-purple to-electric-pink p-0.5">
+                  <div className="w-full h-full rounded-full bg-neural-dark flex items-center justify-center text-[10px] sm:text-xs font-bold">
                     {(user?.firstName || user?.username || user?.email || '').charAt(0).toUpperCase()}
                   </div>
                 </div>
-                <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
