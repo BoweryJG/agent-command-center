@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Settings, Rocket, TestTube, Download, Upload, Phone, Grid, List, Filter, Search, RefreshCw } from 'lucide-react';
+import { Plus, Settings, Rocket, TestTube, Download, Upload, Phone, Grid, List, Filter, Search, RefreshCw, Cloud } from 'lucide-react';
 import { ManagedAgent } from '../types/agent.types';
 import { agentManagementService } from '../services/agentManagement.service';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AgentDashboard: React.FC = () => {
   const [agents, setAgents] = useState<ManagedAgent[]>([]);
@@ -30,6 +31,38 @@ const AgentDashboard: React.FC = () => {
     setAgents(fetchedAgents);
     setFilteredAgents(fetchedAgents);
     setLoading(false);
+  };
+
+  const syncFromAgentBackend = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('http://localhost:3001/api/agent-sync/sync-from-backend');
+      if (response.data.success) {
+        const syncedAgents = response.data.agents;
+        // Show alert with sync results
+        alert(`Synced ${syncedAgents.length} agents from Agent Backend!\n\nThese agents are available to deploy to Pedro or RepConnect1.`);
+        // Reload agents to show updated list
+        await loadAgents();
+      }
+    } catch (error) {
+      console.error('Failed to sync from agent backend:', error);
+      alert('Failed to sync agents from central backend. Make sure the backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPedroAgents = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/agent-sync/pedro-agents');
+      if (response.data.success) {
+        const pedroAgents = response.data.agents;
+        alert(`Pedro currently has ${pedroAgents.length}/${response.data.maxAgents} agents:\n\n${pedroAgents.map((a: any) => `- ${a.name}`).join('\n')}`);
+      }
+    } catch (error) {
+      console.error('Failed to get Pedro agents:', error);
+      alert('Failed to fetch Pedro\'s agents. Pedro backend may be offline.');
+    }
   };
 
   const filterAgents = () => {
@@ -108,14 +141,33 @@ const AgentDashboard: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 flex justify-between items-start"
         >
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Agent Command Center
-          </h1>
-          <p className="text-gray-600">
-            Manage, configure, and deploy AI agents to your client projects
-          </p>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+              Agent Command Center
+            </h1>
+            <p className="text-gray-600">
+              Manage, configure, and deploy AI agents to your client projects
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={syncFromAgentBackend}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              disabled={loading}
+            >
+              <Cloud className="w-4 h-4" />
+              Sync from Agent Backend
+            </button>
+            <button
+              onClick={getPedroAgents}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <Phone className="w-4 h-4" />
+              Check Pedro's Agents
+            </button>
+          </div>
         </motion.div>
 
         {/* Quick Stats */}

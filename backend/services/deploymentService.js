@@ -3,55 +3,55 @@ const supabase = require('../utils/supabase');
 
 // Platform-specific deployment handlers
 const platformHandlers = {
-  repconnect1: {
+  agentbackend: {
     deploy: async (agent, targetUrl) => {
-      // Deploy to repconnect1 backend
-      const response = await axios.post(`${targetUrl}/api/agents/receive`, {
-        agent: {
-          id: agent.id,
-          name: agent.name,
-          type: agent.type,
-          personality: agent.personality,
-          capabilities: agent.capabilities,
-          voice_config: agent.voice_config,
-          knowledge_base: agent.knowledge_base,
-          procedures_access: agent.procedures_access
-        },
-        source: 'agent-command-center'
+      // First deploy to central agent backend
+      const agentBackendUrl = process.env.AGENT_BACKEND_URL;
+      const response = await axios.post(`${agentBackendUrl}/api/agents`, {
+        id: agent.id,
+        name: agent.name,
+        type: agent.type,
+        personality: agent.personality,
+        capabilities: agent.capabilities,
+        voice_config: agent.voice_config,
+        knowledge_base: agent.knowledge_base,
+        procedures_access: agent.procedures_access,
+        source: 'agent-command-center',
+        deploy_to: targetUrl === process.env.PEDRO_BACKEND_URL ? 'pedro' : 'repconnect1'
       });
+      
+      // Then trigger deployment to specific platform
+      if (targetUrl === process.env.PEDRO_BACKEND_URL) {
+        await axios.post(`${agentBackendUrl}/api/agents/${agent.id}/deploy/pedro`);
+      } else if (targetUrl === process.env.REPCONNECT1_BACKEND_URL) {
+        await axios.post(`${agentBackendUrl}/api/agents/${agent.id}/deploy/repconnect1`);
+      }
+      
       return response.data;
     },
     undeploy: async (agentId, targetUrl) => {
-      const response = await axios.delete(`${targetUrl}/api/agents/${agentId}`);
+      const agentBackendUrl = process.env.AGENT_BACKEND_URL;
+      const platform = targetUrl === process.env.PEDRO_BACKEND_URL ? 'pedro' : 'repconnect1';
+      const response = await axios.delete(`${agentBackendUrl}/api/agents/${agentId}/deploy/${platform}`);
       return response.data;
+    }
+  },
+  repconnect1: {
+    deploy: async (agent, targetUrl) => {
+      // Use agent backend to deploy to RepConnect1
+      return platformHandlers.agentbackend.deploy(agent, process.env.REPCONNECT1_BACKEND_URL);
+    },
+    undeploy: async (agentId, targetUrl) => {
+      return platformHandlers.agentbackend.undeploy(agentId, process.env.REPCONNECT1_BACKEND_URL);
     }
   },
   pedro: {
     deploy: async (agent, targetUrl) => {
-      // Deploy to pedro backend - check 5 agent limit
-      const existingAgents = await axios.get(`${targetUrl}/api/agents`);
-      if (existingAgents.data.length >= 5) {
-        throw new Error('Pedro platform is limited to 5 agents maximum');
-      }
-      
-      const response = await axios.post(`${targetUrl}/api/agents/receive`, {
-        agent: {
-          id: agent.id,
-          name: agent.name,
-          type: agent.type,
-          personality: agent.personality,
-          capabilities: agent.capabilities,
-          voice_config: agent.voice_config,
-          knowledge_base: agent.knowledge_base,
-          procedures_access: agent.procedures_access
-        },
-        source: 'agent-command-center'
-      });
-      return response.data;
+      // Use agent backend to deploy to Pedro
+      return platformHandlers.agentbackend.deploy(agent, process.env.PEDRO_BACKEND_URL);
     },
     undeploy: async (agentId, targetUrl) => {
-      const response = await axios.delete(`${targetUrl}/api/agents/${agentId}`);
-      return response.data;
+      return platformHandlers.agentbackend.undeploy(agentId, process.env.PEDRO_BACKEND_URL);
     }
   }
 };
