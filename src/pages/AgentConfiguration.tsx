@@ -65,7 +65,7 @@ const AgentConfiguration: React.FC = () => {
     setSaving(true);
     try {
       // Save configuration to deployment status
-      await agentManagementService.updateDeploymentStatus(agent.id, 'ready', {
+      await agentManagementService.updateDeploymentStatus(agent.id, 'testing', {
         deployment: deploymentConfig,
         access: accessConfig,
         behavior: behaviorConfig
