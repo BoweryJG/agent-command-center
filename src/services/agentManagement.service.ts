@@ -1,92 +1,260 @@
-import { ManagedAgent, AgentTemplate, DeploymentConfig, VoiceSettings } from '../types/agent.types';
-import { supabase } from './supabase.service';
+import { ManagedAgent, AgentTemplate, VoiceSettings } from '../types/agent.types';
+import { supabase } from '../config/supabase';
 
 // API Response Types
 interface AgentBackendResponse {
   success: boolean;
   agents?: any[];
+  agent?: any;
   error?: string;
 }
 
-interface DeploymentResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-}
-
-interface ImportResponse {
-  success: boolean;
-  agents: ManagedAgent[];
-  error?: string;
-}
-
-interface VoiceTestResponse {
-  success: boolean;
-  audioUrl?: string;
-  error?: string;
-}
-
-interface TestAgentResponse {
+interface ChatResponse {
   success: boolean;
   response?: {
     text: string;
-    confidence: number;
-    processingTime: number;
-  };
-  error?: string;
-}
-
-interface InteractAgentResponse {
-  success: boolean;
-  response?: {
-    text: string;
-    audioUrl?: string;
+    confidence?: number;
+    processingTime?: number;
     emotion?: string;
-    confidence: number;
+    audioUrl?: string;
   };
   sessionId?: string;
   error?: string;
 }
 
-interface VoicePreviewResponse {
+interface VoiceResponse {
   success: boolean;
   audioUrl?: string;
   duration?: number;
   error?: string;
 }
 
-class AgentManagementService {
-  private readonly AGENTBACKEND_URL = process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-  private readonly BACKEND_URL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
+interface DeploymentStatus {
+  externalId: string;
+  status: 'pending' | 'deploying' | 'deployed' | 'failed' | 'rolled-back';
+  message?: string;
+  updatedAt: string;
+}
 
-  // Fetch all agents from centralized agentbackend
+class AgentManagementService {
+  private readonly AGENTBACKEND_URL = 'https://agentbackend-2932.onrender.com';
+
+  // Fetch all agents from agentbackend and merge with Supabase deployment status
   async getAllAgents(): Promise<ManagedAgent[]> {
     try {
-      // First fetch from agentbackend
+      // Fetch from agentbackend
       const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents`);
-      if (response.ok) {
-        const data: AgentBackendResponse = await response.json();
-        if (data.success && data.agents) {
-          return this.convertBackendAgentsToManaged(data.agents);
-        }
+      if (!response.ok) {
+        throw new Error(`Failed to fetch agents: ${response.statusText}`);
       }
 
-      // Fallback to local database
-      const { data, error } = await supabase
-        .from('agents')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data: AgentBackendResponse = await response.json();
+      if (!data.success || !data.agents) {
+        throw new Error(data.error || 'Failed to fetch agents');
+      }
 
-      if (error) throw error;
-      // Convert Supabase data to ManagedAgent format
-      return data ? data.map(agent => ({
-        ...agent,
-        createdAt: new Date(agent.created_at || agent.createdAt),
-        updatedAt: new Date(agent.updated_at || agent.updatedAt)
-      })) : [];
+      // Convert backend agents to ManagedAgent format
+      const managedAgents = this.convertBackendAgentsToManaged(data.agents);
+
+      // Fetch deployment statuses from Supabase
+      const externalIds = data.agents.map(agent => agent.id);
+      const { data: deploymentStatuses, error } = await supabase
+        .from('agent_deployment_status')
+        .select('*')
+        .in('external_agent_id', externalIds);
+
+      if (error) {
+        console.error('Error fetching deployment statuses:', error);
+      }
+
+      // Merge deployment statuses with agents
+      if (deploymentStatuses) {
+        const statusMap = new Map(
+          deploymentStatuses.map(status => [status.external_agent_id, status])
+        );
+
+        managedAgents.forEach(agent => {
+          const status = statusMap.get(agent.id);
+          if (status) {
+            agent.deployment.status = status.deployment_status;
+            agent.deployment.lastDeployed = new Date(status.updated_at);
+          }
+        });
+      }
+
+      return managedAgents;
     } catch (error) {
       console.error('Error fetching agents:', error);
-      return [];
+      throw error;
+    }
+  }
+
+  // Get a single agent by ID
+  async getAgent(id: string): Promise<ManagedAgent | null> {
+    try {
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Failed to fetch agent: ${response.statusText}`);
+      }
+
+      const data: AgentBackendResponse = await response.json();
+      if (!data.success || !data.agent) {
+        throw new Error(data.error || 'Failed to fetch agent');
+      }
+
+      const managedAgent = this.convertBackendAgentsToManaged([data.agent])[0];
+
+      // Fetch deployment status from Supabase
+      const { data: deploymentStatus, error } = await supabase
+        .from('agent_deployment_status')
+        .select('*')
+        .eq('external_agent_id', id)
+        .single();
+
+      if (!error && deploymentStatus) {
+        managedAgent.deployment.status = deploymentStatus.deployment_status;
+        managedAgent.deployment.lastDeployed = new Date(deploymentStatus.updated_at);
+      }
+
+      return managedAgent;
+    } catch (error) {
+      console.error('Error fetching agent:', error);
+      throw error;
+    }
+  }
+
+  // Test agent with a message
+  async testAgent(id: string, data: { message: string; context?: Record<string, string> }): Promise<any> {
+    try {
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error testing agent:', error);
+      throw error;
+    }
+  }
+
+  // Interact with agent
+  async interactWithAgent(id: string, data: { message: string; sessionId?: string; history?: any[] }): Promise<any> {
+    try {
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}/interact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error interacting with agent:', error);
+      throw error;
+    }
+  }
+
+  // Generate voice preview
+  async generateVoicePreview(id: string, text: string, settings?: VoiceSettings): Promise<VoiceResponse> {
+    try {
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agentId: id,
+          text,
+          settings
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
+      }
+
+      const data: VoiceResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error generating voice preview:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Update deployment status in Supabase only
+  async updateDeploymentStatus(
+    externalId: string, 
+    status: 'draft' | 'ready' | 'live',
+    configuration?: any
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('agent_deployment_status')
+        .upsert({
+          external_agent_id: externalId,
+          deployment_status: status,
+          configuration: configuration || {},
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'external_agent_id'
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating deployment status:', error);
+      return false;
+    }
+  }
+
+  // Get deployment status from Supabase
+  async getDeploymentStatus(externalId: string): Promise<any | null> {
+    try {
+      const { data, error } = await supabase
+        .from('agent_deployment_status')
+        .select('*')
+        .eq('external_agent_id', externalId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching deployment status:', error);
+      return null;
     }
   }
 
@@ -135,157 +303,6 @@ class AgentManagementService {
       updatedAt: new Date(),
       tags: [agent.category, agent.subcategory].filter(Boolean)
     }));
-  }
-
-  // Get a single agent by ID
-  async getAgent(id: string): Promise<ManagedAgent | null> {
-    try {
-      // First try to fetch from local database
-      const { data, error } = await supabase
-        .from('managed_agents')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (!error && data) {
-        return data;
-      }
-
-      // If not found locally, try to fetch from agentbackend
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}`);
-      if (response.ok) {
-        const agentData = await response.json();
-        if (agentData) {
-          return this.convertBackendAgentsToManaged([agentData])[0];
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error fetching agent:', error);
-      return null;
-    }
-  }
-
-  // Create a new agent
-  async createAgent(agent: Omit<ManagedAgent, 'id' | 'createdAt' | 'updatedAt'>): Promise<ManagedAgent | null> {
-    try {
-      const { data, error } = await supabase
-        .from('managed_agents')
-        .insert({
-          ...agent,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error creating agent:', error);
-      return null;
-    }
-  }
-
-  // Update an agent
-  async updateAgent(id: string, updates: Partial<ManagedAgent>): Promise<ManagedAgent | null> {
-    try {
-      const { data, error } = await supabase
-        .from('managed_agents')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating agent:', error);
-      return null;
-    }
-  }
-
-  // Delete an agent
-  async deleteAgent(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('managed_agents')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error deleting agent:', error);
-      return false;
-    }
-  }
-
-  // Deploy agent to client project
-  async deployAgent(config: DeploymentConfig): Promise<boolean> {
-    try {
-      // Call backend API to deploy agent
-      const response = await fetch(`${this.BACKEND_URL}/api/agents/deploy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Deployment failed');
-      }
-
-      const data: DeploymentResponse = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Deployment failed');
-      }
-
-      // Update agent deployment status
-      await this.updateAgent(config.agentId, {
-        deployment: {
-          status: 'deployed',
-          url: config.apiEndpoint,
-          lastDeployed: new Date(),
-          environment: config.targetEnvironment
-        }
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error deploying agent:', error);
-      return false;
-    }
-  }
-
-  // Import agents from Pedro project
-  async importPedroAgents(): Promise<ManagedAgent[]> {
-    try {
-      const response = await fetch(`${this.BACKEND_URL}/api/agents/import-pedro`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Import failed');
-      }
-
-      const data: ImportResponse = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Import failed');
-      }
-      
-      return data.agents;
-    } catch (error) {
-      console.error('Error importing Pedro agents:', error);
-      return [];
-    }
   }
 
   // Get agent templates
@@ -357,133 +374,44 @@ class AgentManagementService {
     ];
   }
 
-  // Test agent voice
-  async testAgentVoice(agentId: string, text: string): Promise<string | null> {
+  // Get voice metadata
+  async getVoiceMetadata(voiceId: string): Promise<any> {
     try {
-      const response = await fetch(`${this.BACKEND_URL}/api/voice/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ agentId, text })
-      });
-
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices/${voiceId}/metadata`);
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Voice test failed');
-      }
-
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    } catch (error) {
-      console.error('Error testing voice:', error);
-      return null;
-    }
-  }
-
-  // Test agent with a sample query
-  async testAgent(agentId: string, query: string): Promise<TestAgentResponse> {
-    try {
-      const response = await fetch(`${this.BACKEND_URL}/api/agents/${agentId}/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Agent test failed');
-      }
-
-      const data: TestAgentResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error testing agent:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  // Interactive chat with agent
-  async interactWithAgent(agentId: string, message: string, sessionId?: string): Promise<InteractAgentResponse> {
-    try {
-      const response = await fetch(`${this.BACKEND_URL}/api/agents/${agentId}/interact`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message, sessionId })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Interaction failed');
-      }
-
-      const data: InteractAgentResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error interacting with agent:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  // Generate voice preview for text
-  async generateVoicePreview(voiceId: string, text: string, settings?: VoiceSettings): Promise<VoicePreviewResponse> {
-    try {
-      const response = await fetch(`${this.BACKEND_URL}/api/voice/preview`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ voiceId, text, settings })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Voice preview failed');
-      }
-
-      const data: VoicePreviewResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error generating voice preview:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  // Check agent deployment status
-  async checkDeploymentStatus(agentId: string, platformId: string): Promise<{
-    status: 'pending' | 'deploying' | 'deployed' | 'failed';
-    message?: string;
-    error?: string;
-  }> {
-    try {
-      const response = await fetch(`${this.BACKEND_URL}/api/deployments/status/${agentId}/${platformId}`);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Status check failed');
+        throw new Error(`Failed to fetch voice metadata: ${response.statusText}`);
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error checking deployment status:', error);
-      return {
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
+      console.error('Error fetching voice metadata:', error);
+      throw error;
+    }
+  }
+
+  // Preview voice
+  async previewVoice(data: { voiceId: string; text: string; settings?: any }): Promise<Blob> {
+    try {
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices/preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      return blob;
+    } catch (error) {
+      console.error('Error previewing voice:', error);
+      throw error;
     }
   }
 }

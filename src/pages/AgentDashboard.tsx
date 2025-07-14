@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Settings, Rocket, TestTube, Download, Upload, Phone, Grid, List, Filter, Search, RefreshCw, Cloud } from 'lucide-react';
+import { Plus, Settings, Rocket, TestTube, Download, Upload, Phone, Grid, List, Filter, Search, RefreshCw } from 'lucide-react';
 import { ManagedAgent } from '../types/agent.types';
 import { agentManagementService } from '../services/agentManagement.service';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { AgentCard } from '../components/Agent/AgentCard';
 import { TestAgentModal } from '../components/Agent/TestAgentModal';
 import { InteractAgentModal } from '../components/Agent/InteractAgentModal';
@@ -43,116 +42,34 @@ const AgentDashboard: React.FC = () => {
     setLoading(false);
   };
 
-  const syncFromAgentBackend = async () => {
-    setLoading(true);
-    try {
-      const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-      const response = await axios.get(`${apiUrl}/api/agent-sync/sync-from-backend`);
-      
-      if (response.data.success) {
-        const syncedAgents = response.data.agents;
-        
-        // Import each agent to local storage for configuration
-        let importCount = 0;
-        let errorCount = 0;
-        
-        for (const agent of syncedAgents) {
-          try {
-            // Check if agent already exists
-            const exists = agents.find(a => a.id === agent.id);
-            if (!exists) {
-              // Import agent to local system
-              const createdAgent = await agentManagementService.createAgent({
-                ...agent,
-                source: 'agent-backend',
-                imported_at: new Date().toISOString(),
-                deployment_status: 'not_deployed'
-              } as any);
-              
-              if (createdAgent) {
-                importCount++;
-              } else {
-                errorCount++;
-              }
-            }
-          } catch (err) {
-            console.error(`Failed to import agent ${agent.name}:`, err);
-            errorCount++;
-          }
-        }
-        
-        // Show results with more detailed feedback
-        const message = [
-          'Agent Backend Sync Complete!',
-          '',
-          `Total agents found: ${syncedAgents.length}`,
-          `Already existed: ${syncedAgents.length - importCount - errorCount}`,
-          `Newly imported: ${importCount}`,
-          errorCount > 0 ? `Failed to import: ${errorCount}` : '',
-          '',
-          'You can now configure and deploy these agents to Pedro or RepConnect1.'
-        ].filter(Boolean).join('\n');
-        
-        alert(message);
-        
-        // Reload agents to show updated list
-        await loadAgents();
-      } else {
-        throw new Error(response.data.error || 'Sync failed');
-      }
-    } catch (error: any) {
-      console.error('Failed to sync from agent backend:', error);
-      
-      // Provide more specific error messages
-      let errorMessage = 'Failed to sync agents from central backend.';
-      
-      if (error.response?.status === 404) {
-        errorMessage += '\n\nThe sync endpoint was not found. Make sure you have the latest backend version.';
-      } else if (error.response?.status >= 500) {
-        errorMessage += '\n\nThe backend server encountered an error. Please try again later.';
-      } else if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        errorMessage += '\n\nCould not connect to the backend. Make sure it is running and accessible.';
-      } else if (error.response?.data?.error) {
-        errorMessage += `\n\n${error.response.data.error}`;
-      }
-      
-      alert(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const getPedroAgents = async () => {
+  const checkDeployedAgents = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-      const response = await axios.get(`${apiUrl}/api/agent-sync/pedro-agents`);
+      // Get all agents which includes deployment status
+      const allAgents = await agentManagementService.getAllAgents();
       
-      if (response.data.success) {
-        const pedroAgents = response.data.agents;
-        const message = [
-          `Pedro currently has ${pedroAgents.length}/${response.data.maxAgents} agents:`,
-          '',
-          ...pedroAgents.map((a: any) => `• ${a.name}`)
-        ].join('\n');
-        
-        alert(message);
-      } else {
-        throw new Error(response.data.error || 'Failed to fetch agents');
-      }
+      // Filter agents that are deployed (live status)
+      const deployedAgents = allAgents.filter(agent => 
+        agent.deployment?.status === 'live'
+      );
+      
+      // For now, show all deployed agents
+      const repConnectAgents = deployedAgents;
+      
+      const message = [
+        'Deployed Agents Summary:',
+        '',
+        `Pedro: ${pedroAgents.length} agents`,
+        ...pedroAgents.map(a => `  • ${a.name}`),
+        '',
+        `RepConnect1: ${repConnectAgents.length} agents`,
+        ...repConnectAgents.map(a => `  • ${a.name}`)
+      ].join('\n');
+      
+      alert(message);
     } catch (error: any) {
-      console.error('Failed to get Pedro agents:', error);
-      
-      let errorMessage = 'Failed to fetch Pedro\'s agents.';
-      
-      if (error.response?.status === 404) {
-        errorMessage += '\n\nThe Pedro agents endpoint was not found.';
-      } else if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        errorMessage += '\n\nPedro backend may be offline or unreachable.';
-      } else if (error.response?.data?.error) {
-        errorMessage += `\n\n${error.response.data.error}`;
-      }
-      
-      alert(errorMessage);
+      console.error('Failed to check deployed agents:', error);
+      alert('Failed to check deployed agents. Please try again.');
     }
   };
 
@@ -193,7 +110,7 @@ const AgentDashboard: React.FC = () => {
   const handleCreateAgent = () => {
     // Redirect to Agent Backend to create agents
     window.open('https://agentbackend-2932.onrender.com/agents/create', '_blank');
-    alert('Create your agent on the Agent Backend.\n\nAfter creating, use "Sync from Agent Backend" to import it here for configuration and deployment.');
+    alert('Create your agent on the Agent Backend.\n\nThe new agent will appear here automatically after creation.');
   };
 
   const handleConfigureAgent = (agent: ManagedAgent) => {
@@ -205,43 +122,43 @@ const AgentDashboard: React.FC = () => {
   };
 
   const handleDeployAgent = async (agent: ManagedAgent) => {
-    const platform = prompt('Deploy to which platform?\n\n1. Pedro (max 5 agents)\n2. RepConnect1\n\nEnter 1 or 2:');
+    const platform = prompt('Deploy to which platform?\n\n1. Pedro\n2. RepConnect1\n\nEnter 1 or 2:');
     
     if (!platform || !['1', '2'].includes(platform)) {
       return; // User cancelled or entered invalid option
     }
     
-    const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
     const platformName = platform === '1' ? 'Pedro' : 'RepConnect1';
-    const endpoint = platform === '1' ? 'deploy-to-pedro' : 'deploy-to-repconnect1';
+    const targetEnvironment = platform === '1' ? 'pedro' : 'repconnect1';
     
     // Show loading state
     const loadingMessage = `Deploying ${agent.name} to ${platformName}...`;
     console.log(loadingMessage);
     
     try {
-      const response = await axios.post(`${apiUrl}/api/agent-sync/${endpoint}/${agent.id}`);
+      // Use the agentManagementService to deploy
+      const deploymentConfig = {
+        agentId: agent.id,
+        targetEnvironment,
+        apiEndpoint: `https://${targetEnvironment}.example.com/api`, // This will be configured per environment
+        apiKey: '', // This should be retrieved from environment config
+        webhookUrl: ''
+      };
       
-      if (response.data.success) {
+      const success = await agentManagementService.deployAgent(deploymentConfig);
+      
+      if (success) {
         alert(`Successfully deployed ${agent.name} to ${platformName}!`);
         await loadAgents();
       } else {
-        throw new Error(response.data.error || 'Deployment failed');
+        throw new Error('Deployment failed');
       }
     } catch (error: any) {
       console.error(`Failed to deploy to ${platformName}:`, error);
       
       let errorMessage = `Failed to deploy to ${platformName}`;
       
-      if (error.response?.status === 404) {
-        errorMessage += '\n\nThe deployment endpoint was not found. Make sure you have the latest backend version.';
-      } else if (error.response?.status === 409) {
-        errorMessage += '\n\nThis agent may already be deployed or there is a conflict.';
-      } else if (error.response?.data?.details) {
-        errorMessage += `\n\n${error.response.data.details}`;
-      } else if (error.response?.data?.error) {
-        errorMessage += `\n\n${error.response.data.error}`;
-      } else if (error.message) {
+      if (error.message) {
         errorMessage += `\n\n${error.message}`;
       }
       
@@ -313,23 +230,13 @@ const AgentDashboard: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <motion.button
-              onClick={syncFromAgentBackend}
-              className="neural-button flex items-center gap-2"
-              disabled={loading}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Cloud className="w-4 h-4" />
-              Sync from Agent Backend
-            </motion.button>
-            <motion.button
-              onClick={getPedroAgents}
+              onClick={checkDeployedAgents}
               className="px-4 py-3 rounded-lg bg-gradient-to-r from-electric-purple to-electric-pink hover:from-electric-pink hover:to-electric-purple text-white font-medium flex items-center gap-2 transition-all duration-300 hover:shadow-neural"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <Phone className="w-4 h-4" />
-              Check Pedro's Agents
+              Check Deployed Agents
             </motion.button>
           </div>
         </motion.div>
@@ -524,7 +431,7 @@ const AgentDashboard: React.FC = () => {
             className="px-6 py-3 rounded-lg bg-neural-accent/30 hover:bg-neural-accent/50 text-text-primary font-medium flex items-center gap-2 transition-all duration-300 border border-neural-accent/20 hover:border-electric-cyan/30"
           >
             <RefreshCw className="w-5 h-5" />
-            Refresh from Backend
+            Refresh Agents
           </motion.button>
         </div>
 

@@ -64,11 +64,11 @@ const AgentConfiguration: React.FC = () => {
     
     setSaving(true);
     try {
-      // For now, we'll save the configuration data in a different way
-      // This would typically be saved to a separate configuration table
-      await agentManagementService.updateAgent(agent.id, {
-        // Update the agent with any changes
-        updatedAt: new Date()
+      // Save configuration to deployment status
+      await agentManagementService.updateDeploymentStatus(agent.id, 'ready', {
+        deployment: deploymentConfig,
+        access: accessConfig,
+        behavior: behaviorConfig
       });
       
       // TODO: Implement proper configuration storage

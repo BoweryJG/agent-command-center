@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Volume2, Loader, User, Bot, Wifi, WifiOff, MoreVertical, Trash2 } from 'lucide-react';
+import { X, Send, Volume2, Loader, User, Bot, MoreVertical, Trash2 } from 'lucide-react';
 import { ManagedAgent } from '../../types/agent.types';
-import websocketService, { useWebSocketRoom, WebSocketRoomType } from '../../utils/websocketService';
-import axios from 'axios';
+import { agentManagementService } from '../../services/agentManagement.service';
 
 interface InteractAgentModalProps {
   isOpen: boolean;
@@ -36,57 +35,9 @@ export const InteractAgentModal: React.FC<InteractAgentModalProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [showSessionMenu, setShowSessionMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // WebSocket room for real-time chat
-  const roomName = agent ? `${WebSocketRoomType.AGENT}${agent.id}` : '';
-  
-  useWebSocketRoom(roomName, useCallback((data: any) => {
-    if (data.type === 'agent:response') {
-      // Remove typing indicator and add actual response
-      setMessages(prev => prev.filter(m => !m.isTyping).concat({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date()
-      }));
-      setIsLoading(false);
-    } else if (data.type === 'agent:typing') {
-      // Show typing indicator
-      setMessages(prev => [...prev, {
-        id: 'typing',
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        isTyping: true
-      }]);
-    } else if (data.type === 'agent:error') {
-      // Handle error
-      setMessages(prev => prev.filter(m => !m.isTyping).concat({
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `Error: ${data.error}`,
-        timestamp: new Date()
-      }));
-      setIsLoading(false);
-    }
-  }, [agent]));
-
-  // Check WebSocket connection
-  useEffect(() => {
-    const checkConnection = () => {
-      const state = websocketService.getState();
-      setIsConnected(state.connected);
-    };
-
-    checkConnection();
-    const interval = setInterval(checkConnection, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Initialize session when modal opens
   useEffect(() => {
@@ -135,41 +86,37 @@ export const InteractAgentModal: React.FC<InteractAgentModalProps> = ({
     setIsLoading(true);
 
     try {
-      if (isConnected) {
-        // Use WebSocket for real-time communication
-        websocketService.sendToRoom(roomName, {
-          type: 'user:message',
-          message: currentMessage,
-          sessionId: session?.id
-        });
-      } else {
-        // Fallback to REST API
-        const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-        
-        const response = await axios.post(`${apiUrl}/api/agents/${agent.id}/interact`, {
-          message: currentMessage,
-          sessionId: session?.id,
-          history: messages.slice(-10) // Send last 10 messages for context
-        });
+      // Show typing indicator
+      setMessages(prev => [...prev, {
+        id: 'typing',
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true
+      }]);
 
-        const assistantMessage: Message = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: response.data.response,
-          timestamp: new Date()
-        };
+      const response = await agentManagementService.interactWithAgent(agent.id, {
+        message: currentMessage,
+        sessionId: session?.id,
+        history: messages.slice(-10) // Send last 10 messages for context
+      });
 
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-      }
+      // Remove typing indicator and add actual response
+      setMessages(prev => prev.filter(m => !m.isTyping).concat({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: response.response,
+        timestamp: new Date()
+      }));
+      setIsLoading(false);
     } catch (error: any) {
-      const errorMessage: Message = {
+      // Remove typing indicator and show error
+      setMessages(prev => prev.filter(m => !m.isTyping).concat({
         id: Date.now().toString(),
         role: 'assistant',
         content: `Sorry, I encountered an error: ${error.message}`,
         timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      }));
       setIsLoading(false);
     }
   };
@@ -243,19 +190,6 @@ export const InteractAgentModal: React.FC<InteractAgentModalProps> = ({
                     </h2>
                     <div className="flex items-center gap-3 text-sm text-text-muted">
                       <span>{agent.type}</span>
-                      <div className="flex items-center gap-1">
-                        {isConnected ? (
-                          <>
-                            <Wifi className="w-3 h-3 text-green-400" />
-                            <span className="text-green-400">Live</span>
-                          </>
-                        ) : (
-                          <>
-                            <WifiOff className="w-3 h-3 text-yellow-400" />
-                            <span className="text-yellow-400">API</span>
-                          </>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>

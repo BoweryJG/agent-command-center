@@ -10,7 +10,7 @@ import {
   User 
 } from '../types/auth.types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_AGENT_BACKEND_URL || 'https://agentbackend-2932.onrender.com';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -83,7 +83,7 @@ class AuthService {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/login`, {
+      const response = await axios.post<AuthResponse>(`${API_BASE_URL}/api/auth/login`, {
         email: credentials.email,
         password: credentials.password,
       });
@@ -102,7 +102,7 @@ class AuthService {
 
   async signup(credentials: SignupCredentials): Promise<AuthResponse> {
     try {
-      const response = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/signup`, credentials);
+      const response = await axios.post<AuthResponse>(`${API_BASE_URL}/api/auth/signup`, credentials);
       const { tokens } = response.data;
       this.saveTokens(tokens);
 
@@ -118,7 +118,7 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       // Call logout endpoint if needed
-      await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
+      await axios.post(`${API_BASE_URL}/api/auth/logout`, {}, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
         },
@@ -137,7 +137,7 @@ class AuthService {
     }
 
     try {
-      const response = await axios.post<AuthTokens>(`${API_BASE_URL}/auth/refresh`, {
+      const response = await axios.post<AuthTokens>(`${API_BASE_URL}/api/auth/refresh`, {
         refreshToken: this.refreshToken,
       });
 
@@ -158,7 +158,7 @@ class AuthService {
     }
 
     try {
-      const response = await axios.get<User>(`${API_BASE_URL}/auth/me`, {
+      const response = await axios.get<User>(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
         },
@@ -170,7 +170,7 @@ class AuthService {
         // Try to refresh token
         await this.refreshAccessToken();
         // Retry the request
-        const response = await axios.get<User>(`${API_BASE_URL}/auth/me`, {
+        const response = await axios.get<User>(`${API_BASE_URL}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
           },
@@ -182,7 +182,7 @@ class AuthService {
   }
 
   async updateProfile(updates: Partial<User>): Promise<User> {
-    const response = await axios.patch<User>(`${API_BASE_URL}/auth/profile`, updates, {
+    const response = await axios.patch<User>(`${API_BASE_URL}/api/auth/profile`, updates, {
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
       },
@@ -193,15 +193,15 @@ class AuthService {
 
   // OAuth preparation methods
   getGoogleAuthUrl(): string {
-    return `${API_BASE_URL}/auth/google`;
+    return `${API_BASE_URL}/api/auth/google`;
   }
 
   getGithubAuthUrl(): string {
-    return `${API_BASE_URL}/auth/github`;
+    return `${API_BASE_URL}/api/auth/github`;
   }
 
   async handleOAuthCallback(provider: string, code: string): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/${provider}/callback`, {
+    const response = await axios.post<AuthResponse>(`${API_BASE_URL}/api/auth/${provider}/callback`, {
       code,
     });
 

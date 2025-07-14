@@ -28,7 +28,7 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/voice');
+        const response = await fetch('https://agentbackend-2932.onrender.com/api/voice');
         const data = await response.json();
         const voicesWithDefaults = data.map((voice: any) => ({
           ...voice,

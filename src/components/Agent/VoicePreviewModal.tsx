@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Pause, Volume2, Sliders, RefreshCw, Download, Loader } from 'lucide-react';
 import { ManagedAgent } from '../../types/agent.types';
-import axios from 'axios';
+import { agentManagementService } from '../../services/agentManagement.service';
 
 interface VoicePreviewModalProps {
   isOpen: boolean;
@@ -65,10 +65,8 @@ export const VoicePreviewModal: React.FC<VoicePreviewModalProps> = ({
     if (!agent?.voiceConfig.voiceId) return;
 
     try {
-      const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-      const response = await axios.get(`${apiUrl}/api/voices/${agent.voiceConfig.voiceId}/metadata`);
-      
-      setVoiceMetadata(response.data);
+      const response = await agentManagementService.getVoiceMetadata(agent.voiceConfig.voiceId);
+      setVoiceMetadata(response);
     } catch (error) {
       console.error('Failed to fetch voice metadata:', error);
       // Set some default metadata
@@ -95,22 +93,13 @@ export const VoicePreviewModal: React.FC<VoicePreviewModalProps> = ({
     setError(null);
 
     try {
-      const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-      
-      const response = await axios.post(
-        `${apiUrl}/api/voices/preview`,
-        {
-          voiceId: agent.voiceConfig.voiceId,
-          text: textToSpeak,
-          settings: agent.voiceConfig.settings
-        },
-        {
-          responseType: 'blob'
-        }
-      );
+      const audioBlob = await agentManagementService.previewVoice({
+        voiceId: agent.voiceConfig.voiceId,
+        text: textToSpeak,
+        settings: agent.voiceConfig.settings
+      });
 
       // Create audio URL from blob
-      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(audioBlob);
       
       // Revoke previous URL if exists

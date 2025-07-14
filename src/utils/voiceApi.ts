@@ -1,6 +1,6 @@
 // Voice API utilities for backend integration
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_AGENT_BACKEND_URL || 'https://agentbackend-2932.onrender.com';
 
 export interface VoiceCloneRequest {
   url?: string;
@@ -48,7 +48,7 @@ export const voiceApi = {
       formData.append('settings', JSON.stringify(request.settings));
     }
 
-    const response = await fetch(`${API_BASE_URL}/voice/clone`, {
+    const response = await fetch(`${API_BASE_URL}/api/voice/clone`, {
       method: 'POST',
       body: formData,
     });
@@ -62,7 +62,7 @@ export const voiceApi = {
 
   // Generate speech with a cloned voice
   async generateSpeech(request: VoiceGenerateRequest): Promise<{ audioUrl: string }> {
-    const response = await fetch(`${API_BASE_URL}/voice/generate`, {
+    const response = await fetch(`${API_BASE_URL}/api/voice/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -77,7 +77,7 @@ export const voiceApi = {
 
   // Get all available voices
   async getVoices(): Promise<VoiceResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/voices`);
+    const response = await fetch(`${API_BASE_URL}/api/voices`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch voices: ${response.statusText}`);
@@ -88,7 +88,7 @@ export const voiceApi = {
 
   // Delete a voice
   async deleteVoice(voiceId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/voice/${voiceId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/voice/${voiceId}`, {
       method: 'DELETE',
     });
 
@@ -99,7 +99,7 @@ export const voiceApi = {
 
   // Analyze voice characteristics
   async analyzeVoice(audioUrl: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/voice/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/api/voice/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ audioUrl }),

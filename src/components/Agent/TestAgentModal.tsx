@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Clock, CheckCircle, AlertCircle, Loader, Copy, RotateCcw } from 'lucide-react';
 import { ManagedAgent } from '../../types/agent.types';
-import axios from 'axios';
+import { agentManagementService } from '../../services/agentManagement.service';
 
 interface TestAgentModalProps {
   isOpen: boolean;
@@ -42,16 +42,14 @@ export const TestAgentModal: React.FC<TestAgentModalProps> = ({
     const startTime = Date.now();
 
     try {
-      const apiUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'https://agentbackend-2932.onrender.com';
-      
-      const response = await axios.post(`${apiUrl}/api/agents/${agent.id}/test`, {
+      const response = await agentManagementService.testAgent(agent.id, {
         message: testMessage,
         context: contextFields
       });
 
       const responseTime = Date.now() - startTime;
       const result: TestResult = {
-        response: response.data.response,
+        response: response.response,
         responseTime,
         timestamp: new Date(),
         success: true
