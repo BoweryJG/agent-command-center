@@ -10,6 +10,7 @@ dotenv.config();
 // Import routes
 const deploymentRoutes = require('./routes/deployments');
 const agentRoutes = require('./routes/agents');
+const voiceRoutes = require('./routes/voice');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,6 +43,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/deployments', deploymentRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

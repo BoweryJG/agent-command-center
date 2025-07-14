@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface Voice {
@@ -20,15 +20,38 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const voices: Voice[] = [
-    { id: 'harvey', name: 'Harvey', type: 'Professional', accent: 'American', usageCount: 1250, lastUsed: '2 hours ago' },
-    { id: 'synthia', name: 'Synthia', type: 'Friendly', accent: 'British', usageCount: 890, lastUsed: '1 day ago' },
-    { id: 'echo', name: 'Echo', type: 'Robotic', accent: 'Neutral', usageCount: 456, lastUsed: '3 days ago' },
-    { id: 'nova', name: 'Nova', type: 'Energetic', accent: 'Australian', usageCount: 234, lastUsed: '1 week ago' },
-    { id: 'atlas', name: 'Atlas', type: 'Authoritative', accent: 'American', usageCount: 567, lastUsed: '4 hours ago' },
-    { id: 'luna', name: 'Luna', type: 'Soothing', accent: 'Canadian', usageCount: 789, lastUsed: '2 days ago' },
-  ];
+  // Fetch voices from API
+  useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/voice');
+        const data = await response.json();
+        const voicesWithDefaults = data.map((voice: any) => ({
+          ...voice,
+          type: voice.type || 'Professional',
+          accent: voice.accent || 'American',
+          usageCount: voice.usageCount || Math.floor(Math.random() * 1000),
+          lastUsed: voice.lastUsed || '2 hours ago'
+        }));
+        setVoices(voicesWithDefaults);
+      } catch (error) {
+        console.error('Failed to fetch voices:', error);
+        // Fallback to mock data
+        setVoices([
+          { id: 'harvey', name: 'Harvey', type: 'Professional', accent: 'American', usageCount: 1250, lastUsed: '2 hours ago', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+          { id: 'samantha', name: 'Samantha', type: 'Friendly', accent: 'British', usageCount: 890, lastUsed: '1 day ago', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+          { id: 'marcus', name: 'Marcus', type: 'Robotic', accent: 'Neutral', usageCount: 456, lastUsed: '3 days ago', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVoices();
+  }, []);
 
   const tags = ['Professional', 'Friendly', 'Robotic', 'Energetic', 'Authoritative', 'Soothing'];
 
@@ -41,15 +64,41 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
   });
 
   const handlePlayVoice = (voiceId: string) => {
-    if (playingVoiceId === voiceId) {
+    const voice = voices.find(v => v.id === voiceId);
+    
+    if (playingVoiceId === voiceId && audioRef.current) {
+      audioRef.current.pause();
       setPlayingVoiceId(null);
-      // Stop audio playback
     } else {
-      setPlayingVoiceId(voiceId);
-      // Start audio playback
-      setTimeout(() => setPlayingVoiceId(null), 3000); // Simulate playback
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      if (voice?.audioUrl) {
+        const audio = new Audio(voice.audioUrl);
+        audioRef.current = audio;
+        
+        audio.play().catch(err => {
+          console.error('Failed to play audio:', err);
+          setPlayingVoiceId(null);
+        });
+        
+        audio.onended = () => {
+          setPlayingVoiceId(null);
+        };
+        
+        setPlayingVoiceId(voiceId);
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-text-muted">Loading voices...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
