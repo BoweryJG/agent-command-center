@@ -118,7 +118,11 @@ export const VoicePreviewModal: React.FC<VoicePreviewModalProps> = ({
       }, 100);
     } catch (error: any) {
       console.error('Failed to generate voice preview:', error);
-      setError(error.response?.data?.error || 'Failed to generate voice preview');
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        setError('Voice preview is not available yet. The voice API is currently being implemented.');
+      } else {
+        setError(error.response?.data?.error || 'Failed to generate voice preview. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }

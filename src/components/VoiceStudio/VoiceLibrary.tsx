@@ -40,11 +40,11 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
         setVoices(voicesWithDefaults);
       } catch (error) {
         console.error('Failed to fetch voices:', error);
-        // Fallback to mock data
+        // Fallback to mock data without external audio URLs
         setVoices([
-          { id: 'harvey', name: 'Harvey', type: 'Professional', accent: 'American', usageCount: 1250, lastUsed: '2 hours ago', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-          { id: 'samantha', name: 'Samantha', type: 'Friendly', accent: 'British', usageCount: 890, lastUsed: '1 day ago', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-          { id: 'marcus', name: 'Marcus', type: 'Robotic', accent: 'Neutral', usageCount: 456, lastUsed: '3 days ago', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+          { id: 'harvey', name: 'Harvey', type: 'Professional', accent: 'American', usageCount: 1250, lastUsed: '2 hours ago' },
+          { id: 'samantha', name: 'Samantha', type: 'Friendly', accent: 'British', usageCount: 890, lastUsed: '1 day ago' },
+          { id: 'marcus', name: 'Marcus', type: 'Robotic', accent: 'Neutral', usageCount: 456, lastUsed: '3 days ago' },
         ]);
       } finally {
         setLoading(false);
@@ -80,6 +80,7 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
         
         audio.play().catch(err => {
           console.error('Failed to play audio:', err);
+          alert('Voice preview is not available yet. The voice API is currently being implemented.');
           setPlayingVoiceId(null);
         });
         
@@ -88,6 +89,8 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
         };
         
         setPlayingVoiceId(voiceId);
+      } else {
+        alert('Voice preview is not available yet. The voice API is currently being implemented.');
       }
     }
   };
