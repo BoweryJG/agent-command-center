@@ -113,7 +113,7 @@ export const InteractAgentModal: React.FC<InteractAgentModalProps> = ({
       if (agent.voiceConfig?.enabled) {
         import('../../services/textToSpeech.service').then(({ ttsService }) => {
           ttsService.speak(response.response, {
-            voiceId: agent.voiceConfig.voiceId || agent.voiceConfig.voice_id
+            voiceId: agent.voiceConfig.voiceId
           }).catch(err => {
             console.error('Failed to speak response:', err);
           });
