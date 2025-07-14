@@ -23,7 +23,12 @@ class AgentManagementService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return this.convertSupabaseAgentsToManaged(data || []);
+      // Convert Supabase data to ManagedAgent format
+      return data ? data.map(agent => ({
+        ...agent,
+        createdAt: new Date(agent.created_at || agent.createdAt),
+        updatedAt: new Date(agent.updated_at || agent.updatedAt)
+      })) : [];
     } catch (error) {
       console.error('Error fetching agents:', error);
       return [];
