@@ -142,6 +142,16 @@ app.get('/api/version', (req, res) => {
   });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    service: 'agent-command-center-backend',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // API routes
 app.use('/api/deployments', deploymentRoutes);
 app.use('/api/agents', agentRoutes);
