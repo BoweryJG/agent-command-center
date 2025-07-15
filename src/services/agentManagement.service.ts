@@ -1,5 +1,6 @@
 import { ManagedAgent, AgentTemplate, VoiceSettings } from '../types/agent.types';
 import { supabase } from '../config/supabase';
+import axiosInstance from '../lib/axios';
 
 // API Response Types
 interface AgentBackendResponse {
@@ -46,25 +47,20 @@ class AgentManagementService {
     try {
       // Try to get deployed agents first from local backend
       try {
-        const deployedResponse = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents`);
-        if (deployedResponse.ok) {
-          const deployedData = await deployedResponse.json();
-          if (deployedData.success && deployedData.agents && deployedData.agents.length > 0) {
-            // We have deployed agents, use them
-            return this.convertBackendAgentsToManaged(deployedData.agents);
-          }
+        const deployedResponse = await axiosInstance.get(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents`);
+        const deployedData = deployedResponse.data;
+        if (deployedData.success && deployedData.agents && deployedData.agents.length > 0) {
+          // We have deployed agents, use them
+          return this.convertBackendAgentsToManaged(deployedData.agents);
         }
       } catch (deployedError) {
         console.log('No deployed agents found, falling back to agentbackend');
       }
 
       // Fallback: Fetch from agentbackend
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch agents: ${response.statusText}`);
-      }
-
-      const data: AgentBackendResponse = await response.json();
+      const response = await axiosInstance.get(`${this.AGENTBACKEND_URL}/api/agents`);
+      const data: AgentBackendResponse = response.data;
+      
       if (!data.success || !data.agents) {
         throw new Error(data.error || 'Failed to fetch agents');
       }
@@ -108,15 +104,9 @@ class AgentManagementService {
   // Get a single agent by ID
   async getAgent(id: string): Promise<ManagedAgent | null> {
     try {
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null;
-        }
-        throw new Error(`Failed to fetch agent: ${response.statusText}`);
-      }
-
-      const data: AgentBackendResponse = await response.json();
+      const response = await axiosInstance.get(`${this.AGENTBACKEND_URL}/api/agents/${id}`);
+      const data: AgentBackendResponse = response.data;
+      
       if (!data.success || !data.agent) {
         throw new Error(data.error || 'Failed to fetch agent');
       }
@@ -145,78 +135,39 @@ class AgentManagementService {
   // Test agent with a message
   async testAgent(id: string, testData: { message: string; context?: Record<string, string> }): Promise<any> {
     try {
-      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents/${id}/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
+      const response = await axiosInstance.post(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents/${id}/test`, testData);
+      return response.data;
+    } catch (error: any) {
       console.error('Error testing agent:', error);
-      throw error;
+      throw new Error(error.response?.data?.error || error.message || 'Request failed');
     }
   }
 
   // Interact with agent
   async interactWithAgent(id: string, interactionData: { message: string; sessionId?: string; history?: any[] }): Promise<any> {
     try {
-      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents/${id}/interact`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(interactionData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
+      const response = await axiosInstance.post(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents/${id}/interact`, interactionData);
+      return response.data;
+    } catch (error: any) {
       console.error('Error interacting with agent:', error);
-      throw error;
+      throw new Error(error.response?.data?.error || error.message || 'Request failed');
     }
   }
 
   // Generate voice preview
   async generateVoicePreview(id: string, text: string, settings?: VoiceSettings): Promise<VoiceResponse> {
     try {
-      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/voices`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agentId: id,
-          text,
-          settings
-        })
+      const response = await axiosInstance.post(`${this.COMMAND_CENTER_BACKEND_URL}/api/voices`, {
+        agentId: id,
+        text,
+        settings
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Request failed: ${response.statusText}`);
-      }
-
-      const data: VoiceResponse = await response.json();
-      return data;
-    } catch (error) {
+      return response.data;
+    } catch (error: any) {
       console.error('Error generating voice preview:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error.response?.data?.error || error.message || 'Unknown error occurred'
       };
     }
   }
@@ -325,18 +276,8 @@ class AgentManagementService {
   async importPedroAgents(): Promise<ManagedAgent[]> {
     try {
       // Call the command center backend sync endpoint with pedro platform filter
-      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agent-sync/sync-from-backend?platform=pedro&save=true`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to sync Pedro agents: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const response = await axiosInstance.get(`${this.COMMAND_CENTER_BACKEND_URL}/api/agent-sync/sync-from-backend?platform=pedro&save=true`);
+      const data = response.data;
       
       if (!data.success) {
         throw new Error(data.error || 'Failed to sync Pedro agents');
@@ -365,20 +306,8 @@ class AgentManagementService {
         throw new Error(`Unknown target environment: ${targetEnvironment}`);
       }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Deployment failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const response = await axiosInstance.post(endpoint, {});
+      const data = response.data;
       
       if (!data.success) {
         throw new Error(data.error || 'Deployment failed');
@@ -401,16 +330,7 @@ class AgentManagementService {
   async deleteAgent(agentId: string): Promise<boolean> {
     try {
       // Delete from agent backend
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${agentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete agent: ${response.statusText}`);
-      }
+      await axiosInstance.delete(`${this.AGENTBACKEND_URL}/api/agents/${agentId}`);
 
       // Also delete deployment status from Supabase
       const { error } = await supabase
@@ -501,14 +421,8 @@ class AgentManagementService {
   // Get voice metadata
   async getVoiceMetadata(voiceId: string): Promise<any> {
     try {
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices/${voiceId}/metadata`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch voice metadata: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
+      const response = await axiosInstance.get(`${this.AGENTBACKEND_URL}/api/voices/${voiceId}/metadata`);
+      return response.data;
     } catch (error) {
       console.error('Error fetching voice metadata:', error);
       throw error;
@@ -519,25 +433,10 @@ class AgentManagementService {
   async previewVoice(data: { voiceId: string; text: string; settings?: any }): Promise<Blob> {
     try {
       // First try the API endpoint
-      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/voices/preview`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
+      const response = await axiosInstance.post(`${this.COMMAND_CENTER_BACKEND_URL}/api/voices/preview`, data, {
+        responseType: 'blob'
       });
-
-      if (!response.ok) {
-        // If API fails, use browser TTS
-        const { ttsService } = await import('./textToSpeech.service');
-        return await ttsService.generateAudioBlob(data.text, {
-          voiceId: data.voiceId,
-          ...data.settings
-        });
-      }
-
-      const blob = await response.blob();
-      return blob;
+      return response.data;
     } catch (error) {
       // Fallback to browser TTS
       console.log('Using browser text-to-speech as fallback');

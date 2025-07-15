@@ -9,6 +9,9 @@ const morgan = require('morgan');
 // Load environment variables
 dotenv.config();
 
+// Import middleware
+const { verifyToken, verifyAdmin, optionalAuth } = require('./middleware/auth');
+
 // Import routes
 const deploymentRoutes = require('./routes/deployments');
 const agentRoutes = require('./routes/agents');
@@ -152,11 +155,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/deployments', deploymentRoutes);
-app.use('/api/agents', agentRoutes);
-app.use('/api/voices', voiceRoutes);
-app.use('/api/agent-sync', agentSyncRoutes);
+// API routes with authentication
+app.use('/api/deployments', verifyToken, deploymentRoutes);
+app.use('/api/agents', verifyToken, agentRoutes);
+app.use('/api/voices', verifyToken, voiceRoutes);
+app.use('/api/agent-sync', verifyToken, verifyAdmin, agentSyncRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

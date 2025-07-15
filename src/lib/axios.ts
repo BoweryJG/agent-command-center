@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import authService from '../services/auth.service';
+import { supabase } from '../config/supabase';
 
 const API_BASE_URL = process.env.REACT_APP_AGENT_BACKEND_URL || 'https://agentbackend-2932.onrender.com';
 
@@ -14,11 +14,15 @@ const axiosInstance = axios.create({
 
 // Request interceptor to add auth token
 axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = authService.getAccessToken();
-    
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config: InternalAxiosRequestConfig) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.access_token && config.headers) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+      }
+    } catch (error) {
+      console.error('Error getting session:', error);
     }
     
     return config;
@@ -70,8 +74,14 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const tokens = await authService.refreshAccessToken();
-        const { accessToken } = tokens;
+        // Supabase handles token refresh automatically
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !session) {
+          throw refreshError || new Error('No session');
+        }
+        
+        const accessToken = session.access_token;
         processQueue(null, accessToken);
         
         if (originalRequest.headers) {
@@ -81,7 +91,8 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Redirect to login or dispatch logout action
+        // Clear session and redirect to login
+        await supabase.auth.signOut();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
