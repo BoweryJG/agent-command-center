@@ -178,7 +178,7 @@ class AgentManagementService {
   // Generate voice preview
   async generateVoicePreview(id: string, text: string, settings?: VoiceSettings): Promise<VoiceResponse> {
     try {
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voice`, {
+      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

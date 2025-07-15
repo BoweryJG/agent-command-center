@@ -69,4 +69,40 @@ router.post('/clone', async (req, res) => {
   });
 });
 
+// Voice preview endpoint
+router.post('/preview', async (req, res) => {
+  try {
+    const { text, voiceId, settings } = req.body;
+    
+    // Validate required parameters
+    if (!text || !voiceId) {
+      return res.status(400).json({ 
+        error: 'Missing required parameters: text and voiceId are required' 
+      });
+    }
+    
+    // Check if voice exists
+    const voice = mockVoices[voiceId];
+    if (!voice) {
+      return res.status(404).json({ error: 'Voice not found' });
+    }
+    
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Return mock preview data
+    res.json({
+      audioUrl: voice.audioUrl,
+      duration: Math.random() * 5 + 2, // Random duration between 2-7 seconds
+      text,
+      voiceId,
+      voiceName: voice.name,
+      settings: settings || {}
+    });
+  } catch (error) {
+    console.error('Voice preview error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

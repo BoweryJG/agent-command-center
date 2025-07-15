@@ -48,7 +48,7 @@ export const voiceApi = {
       formData.append('settings', JSON.stringify(request.settings));
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/voice/clone`, {
+    const response = await fetch(`${API_BASE_URL}/api/voices/clone`, {
       method: 'POST',
       body: formData,
     });
@@ -62,7 +62,7 @@ export const voiceApi = {
 
   // Generate speech with a cloned voice
   async generateSpeech(request: VoiceGenerateRequest): Promise<{ audioUrl: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/voice/generate`, {
+    const response = await fetch(`${API_BASE_URL}/api/voices/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -88,7 +88,7 @@ export const voiceApi = {
 
   // Delete a voice
   async deleteVoice(voiceId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/voice/${voiceId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/voices/${voiceId}`, {
       method: 'DELETE',
     });
 
@@ -99,7 +99,7 @@ export const voiceApi = {
 
   // Analyze voice characteristics
   async analyzeVoice(audioUrl: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/api/voice/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/api/voices/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ audioUrl }),

@@ -145,7 +145,7 @@ app.get('/api/version', (req, res) => {
 // API routes
 app.use('/api/deployments', deploymentRoutes);
 app.use('/api/agents', agentRoutes);
-app.use('/api/voice', voiceRoutes);
+app.use('/api/voices', voiceRoutes);
 app.use('/api/agent-sync', agentSyncRoutes);
 
 // Error handling middleware

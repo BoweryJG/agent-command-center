@@ -35,7 +35,7 @@ const VoicePreview: React.FC<VoicePreviewProps> = ({
     
     try {
       // TODO: Replace with actual API call
-      const response = await fetch('/api/voice/generate', {
+      const response = await fetch('/api/voices/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

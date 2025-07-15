@@ -57,7 +57,7 @@ const VoiceCloner: React.FC<VoiceCloneProps> = ({ onCloneComplete }) => {
       formData.append('url', url);
       formData.append('name', `Cloned Voice ${new Date().toISOString()}`);
       
-      const response = await fetch('/api/voice/clone', {
+      const response = await fetch('/api/voices/clone', {
         method: 'POST',
         body: formData,
       });

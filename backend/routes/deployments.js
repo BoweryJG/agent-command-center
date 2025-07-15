@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { deployAgent, undeployAgent, getDeploymentStatus } = require('../services/deploymentService');
+const { deployAgent, undeployAgent, getDeploymentStatus, getAgentDeployments } = require('../services/deploymentService');
 
 // Deploy an agent to a specific platform
 router.post('/deploy', async (req, res, next) => {
@@ -55,6 +55,30 @@ router.get('/agent/:agentId', async (req, res, next) => {
     const { agentId } = req.params;
     const deployments = await getAgentDeployments(agentId);
     res.json(deployments);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Test deployment endpoint
+router.post('/test-deployment', async (req, res, next) => {
+  try {
+    const { agentId, platformId, targetUrl } = req.body;
+    
+    console.log('Test deployment request:', { agentId, platformId, targetUrl });
+    
+    // For testing, just acknowledge the request
+    res.json({
+      success: true,
+      message: 'Test deployment initiated',
+      deployment: {
+        agentId,
+        platformId,
+        targetUrl,
+        status: 'test-success',
+        timestamp: new Date().toISOString()
+      }
+    });
   } catch (error) {
     next(error);
   }
