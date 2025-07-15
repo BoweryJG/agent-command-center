@@ -130,7 +130,7 @@ class AgentManagementService {
   // Test agent with a message
   async testAgent(id: string, testData: { message: string; context?: Record<string, string> }): Promise<any> {
     try {
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}/test`, {
+      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents/${id}/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ class AgentManagementService {
   // Interact with agent
   async interactWithAgent(id: string, interactionData: { message: string; sessionId?: string; history?: any[] }): Promise<any> {
     try {
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents/${id}/interact`, {
+      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents/${id}/interact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ class AgentManagementService {
   // Generate voice preview
   async generateVoicePreview(id: string, text: string, settings?: VoiceSettings): Promise<VoiceResponse> {
     try {
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices`, {
+      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/voices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -504,7 +504,7 @@ class AgentManagementService {
   async previewVoice(data: { voiceId: string; text: string; settings?: any }): Promise<Blob> {
     try {
       // First try the API endpoint
-      const response = await fetch(`${this.AGENTBACKEND_URL}/api/voices/preview`, {
+      const response = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/voices/preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

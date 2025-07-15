@@ -12,7 +12,7 @@ dotenv.config();
 // Import routes
 const deploymentRoutes = require('./routes/deployments');
 const agentRoutes = require('./routes/agents');
-const voiceRoutes = require('./routes/voice');
+const voiceRoutes = require('./routes/voices');
 const agentSyncRoutes = require('./routes/agentSync');
 
 const app = express();
