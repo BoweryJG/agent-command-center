@@ -38,6 +38,7 @@ interface DeploymentStatus {
 
 class AgentManagementService {
   private readonly AGENTBACKEND_URL = 'https://agentbackend-2932.onrender.com';
+  // Use production backend when available, fallback to localhost for development
   private readonly COMMAND_CENTER_BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   // Fetch all agents from agentbackend and merge with Supabase deployment status
