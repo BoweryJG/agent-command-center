@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: agent-command-center-backend
+    runtime: node
+    repo: https://github.com/BoweryJG/agent-command-center
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:3000,https://agent-command-center.netlify.app
+      - key: AGENT_BACKEND_URL
+        value: https://agentbackend-2932.onrender.com
+      - key: REPCONNECT1_BACKEND_URL
+        value: https://osbackend-zl1h.onrender.com
+      - key: PEDRO_BACKEND_URL
+        value: https://pedrobackend.onrender.com
+      - key: AGENT_COMMAND_CENTER_URL
+        value: https://agent-command-center-backend.onrender.com
+      - key: FRONTEND_URL
+        value: https://agent-command-center.netlify.app

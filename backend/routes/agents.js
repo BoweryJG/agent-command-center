@@ -129,21 +129,55 @@ router.get('/:id', async (req, res, next) => {
 // List all deployed agents
 router.get('/', async (req, res, next) => {
   try {
+    // First, check if we should fall back to agentbackend for listing
+    const { fallback } = req.query;
+    
+    if (fallback === 'true') {
+      // Fallback to agentbackend for getting all agents
+      try {
+        const response = await axios.get(`${process.env.AGENT_BACKEND_URL}/api/agents`);
+        return res.json(response.data);
+      } catch (fallbackError) {
+        console.error('Fallback to agentbackend failed:', fallbackError);
+      }
+    }
+    
     const { data: deployments, error } = await supabase
       .from('agent_deployments')
       .select('*, agents(*), platforms(*)')
       .eq('status', 'active');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
     
-    const agents = deployments.map(d => ({
-      ...d.agents,
-      deployment: {
-        platform: d.platforms.name,
-        url: d.deployment_url,
-        deployedAt: d.deployed_at
+    // Handle empty deployments
+    if (!deployments || deployments.length === 0) {
+      // Return empty array instead of error
+      return res.json({
+        success: true,
+        agents: [],
+        message: 'No agents deployed yet'
+      });
+    }
+    
+    const agents = deployments.map(d => {
+      // Handle cases where agents or platforms might be null
+      if (!d.agents) {
+        console.warn('Deployment missing agent data:', d.id);
+        return null;
       }
-    }));
+      
+      return {
+        ...d.agents,
+        deployment: {
+          platform: d.platforms?.name || 'unknown',
+          url: d.deployment_url,
+          deployedAt: d.deployed_at
+        }
+      };
+    }).filter(agent => agent !== null);
     
     res.json({
       success: true,

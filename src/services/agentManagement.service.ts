@@ -43,7 +43,21 @@ class AgentManagementService {
   // Fetch all agents from agentbackend and merge with Supabase deployment status
   async getAllAgents(): Promise<ManagedAgent[]> {
     try {
-      // Fetch from agentbackend
+      // Try to get deployed agents first from local backend
+      try {
+        const deployedResponse = await fetch(`${this.COMMAND_CENTER_BACKEND_URL}/api/agents`);
+        if (deployedResponse.ok) {
+          const deployedData = await deployedResponse.json();
+          if (deployedData.success && deployedData.agents && deployedData.agents.length > 0) {
+            // We have deployed agents, use them
+            return this.convertBackendAgentsToManaged(deployedData.agents);
+          }
+        }
+      } catch (deployedError) {
+        console.log('No deployed agents found, falling back to agentbackend');
+      }
+
+      // Fallback: Fetch from agentbackend
       const response = await fetch(`${this.AGENTBACKEND_URL}/api/agents`);
       if (!response.ok) {
         throw new Error(`Failed to fetch agents: ${response.statusText}`);
