@@ -31,7 +31,7 @@ services:
       - key: PEDRO_BACKEND_URL
         value: https://pedrobackend.onrender.com
       - key: AGENT_COMMAND_CENTER_URL
-        value: https://agent-command-center-backend.onrender.com
+        value: https://agent-command-center.netlify.app
       - key: FRONTEND_URL
         value: https://agent-command-center.netlify.app
       - key: API_TIMEOUT
