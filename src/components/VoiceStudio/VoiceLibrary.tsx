@@ -28,15 +28,22 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
   useEffect(() => {
     const fetchVoices = async () => {
       try {
-        const response = await fetch('https://agentbackend-2932.onrender.com/api/voices');
+        const response = await fetch('https://agentbackend-2932.onrender.com/api/agents');
         const data = await response.json();
-        const voicesWithDefaults = data.map((voice: any) => ({
-          ...voice,
-          type: voice.type || 'Professional',
-          accent: voice.accent || 'American',
-          usageCount: voice.usageCount || Math.floor(Math.random() * 1000),
-          lastUsed: voice.lastUsed || '2 hours ago'
-        }));
+        const agents = data.agents || [];
+        
+        // Convert agents with voice_config to voice objects
+        const voicesWithDefaults = agents
+          .filter((agent: any) => agent.voice_config && agent.voice_config.enabled)
+          .map((agent: any) => ({
+            id: agent.id,
+            name: agent.name,
+            type: agent.personality?.traits?.[0] || 'Professional',
+            accent: agent.language === 'es' ? 'Spanish' : 'American',
+            usageCount: Math.floor(Math.random() * 1000),
+            lastUsed: '2 hours ago',
+            voiceConfig: agent.voice_config
+          }));
         setVoices(voicesWithDefaults);
       } catch (error) {
         console.error('Failed to fetch voices:', error);
@@ -63,7 +70,7 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
     return matchesSearch && matchesTag;
   });
 
-  const handlePlayVoice = (voiceId: string) => {
+  const handlePlayVoice = async (voiceId: string) => {
     const voice = voices.find(v => v.id === voiceId);
     
     if (playingVoiceId === voiceId && audioRef.current) {
@@ -74,40 +81,53 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ selectedVoice, onVoiceSelec
         audioRef.current.pause();
       }
       
-      if (voice?.audioUrl) {
-        const audio = new Audio(voice.audioUrl);
-        audioRef.current = audio;
-        
-        audio.play().catch(async err => {
-          console.error('Failed to play audio, using TTS:', err);
-          // Use browser TTS as fallback
-          try {
-            const { ttsService } = await import('../../services/textToSpeech.service');
-            await ttsService.speak(`Hello, I'm ${voice.name}. This is how I sound.`, {
-              voiceId: voice.id
-            });
-          } catch (ttsError) {
-            console.error('TTS also failed:', ttsError);
-            alert('Voice preview requires a browser that supports speech synthesis.');
-          }
-          setPlayingVoiceId(null);
+      setPlayingVoiceId(voiceId);
+      
+      try {
+        // Generate voice preview using the API
+        const response = await fetch('https://agentbackend-2932.onrender.com/api/voices/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            voiceId: voiceId,
+            text: `Hello, I'm ${voice?.name}. This is how I sound.`
+          })
         });
         
-        audio.onended = () => {
-          setPlayingVoiceId(null);
-        };
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audioRef.current = audio;
+          
+          audio.onended = () => {
+            setPlayingVoiceId(null);
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          audio.onerror = () => {
+            setPlayingVoiceId(null);
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          await audio.play();
+        } else {
+          throw new Error('Failed to generate voice preview');
+        }
+      } catch (error) {
+        console.error('Failed to play voice:', error);
+        setPlayingVoiceId(null);
         
-        setPlayingVoiceId(voiceId);
-      } else {
-        // No audio URL, use TTS directly
-        import('../../services/textToSpeech.service').then(({ ttsService }) => {
-          ttsService.speak(`Hello, I'm ${voice.name}. This is how I sound.`, {
-            voiceId: voice.id
-          }).catch(err => {
-            console.error('TTS failed:', err);
-            alert('Voice preview requires a browser that supports speech synthesis.');
+        // Fallback to browser TTS
+        try {
+          const { ttsService } = await import('../../services/textToSpeech.service');
+          await ttsService.speak(`Hello, I'm ${voice?.name}. This is how I sound.`, {
+            voiceId: voiceId
           });
-        });
+        } catch (ttsError) {
+          console.error('TTS also failed:', ttsError);
+          alert('Voice preview is temporarily unavailable.');
+        }
       }
     }
   };

@@ -34,8 +34,7 @@ const VoicePreview: React.FC<VoicePreviewProps> = ({
     setIsGenerating(true);
     
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/voices/generate', {
+      const response = await fetch('https://agentbackend-2932.onrender.com/api/voices/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -45,10 +44,11 @@ const VoicePreview: React.FC<VoicePreviewProps> = ({
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setGeneratedAudioUrl(data.audioUrl);
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setGeneratedAudioUrl(audioUrl);
         if (onGenerateComplete) {
-          onGenerateComplete(data.audioUrl);
+          onGenerateComplete(audioUrl);
         }
       }
     } catch (error) {
